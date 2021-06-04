@@ -1,0 +1,36 @@
+{
+    "name": "deployment-script",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "dependencies": {
+        "@mirror-protocol/mirror-airdrop": "^1.0.7",
+        "@terra-money/terra.js": "^1.7.0",
+        "core-js": "^3.6.5",
+        "esm": "^3.2.25",
+        "esm-ts-node": "^1.0.7",
+        "firebase": "^8.6.4"
+    },
+    "eslintConfig": {
+        "root": true,
+        "env": {
+            "node": true
+        },
+        "extends": [
+            "plugin:vue/essential",
+            "eslint:recommended"
+        ],
+        "parserOptions": {
+            "parser": "babel-eslint"
+        },
+        "rules": {
+            "no-unused-vars": "off",
+            "vue/no-unused-components": "off"
+        }
+    },
+    "browserslist": [
+        "> 1%",
+        "last 2 versions",
+        "not dead"
+    ]
+}
