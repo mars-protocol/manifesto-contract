@@ -43,7 +43,7 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
         Some(_res) => true,
     };
     if is_claimed {
-        return Err(StdError::generic_err("Account has already signed the Manifesto"));
+        return Err(StdError::generic_err(format!( "User has already signed the Manifesto")));
     }    
 
     // // Add the signee to the storage
@@ -116,53 +116,44 @@ mod tests {
         // it worked, let's query the state
         let res = query(&deps, QueryMsg::GetCount {}).unwrap();
         let value: CountResponse = from_binary(&res).unwrap();
-        assert_eq!(17, value.count);
+        assert_eq!(0, value.count);
     }
 
     #[test]
-    fn increment() {
+    fn sign_manifesto() {
         let mut deps = mock_dependencies(20, &coins(2, "token"));
-
+        
+        // Iniitalize env
         let msg = InitMsg { };
         let env = mock_env("creator", &coins(2, "token"));
         let _res = init(&mut deps, env, msg).unwrap();
 
-        // beneficiary can release it
+        // Sign the manifesto the first time : Should be successful
         let env = mock_env("anyone", &coins(2, "token"));
-        let msg = HandleMsg::Increment {};
+        let msg = HandleMsg::SignManifesto {};
         let _res = handle(&mut deps, env, msg).unwrap();
 
         // should increase counter by 1
         let res = query(&deps, QueryMsg::GetCount {}).unwrap();
         let value: CountResponse = from_binary(&res).unwrap();
-        assert_eq!(18, value.count);
-    }
+        assert_eq!(1, value.count);
 
-    #[test]
-    fn reset() {
-        let mut deps = mock_dependencies(20, &coins(2, "token"));
-
-        let msg = InitMsg { count: 17 };
-        let env = mock_env("creator", &coins(2, "token"));
-        let _res = init(&mut deps, env, msg).unwrap();
-
-        // beneficiary can release it
-        let unauth_env = mock_env("anyone", &coins(2, "token"));
-        let msg = HandleMsg::Reset { count: 5 };
-        let res = handle(&mut deps, unauth_env, msg);
-        match res {
-            Err(StdError::Unauthorized { .. }) => {}
-            _ => panic!("Must return unauthorized error"),
+        // Sign the manifesto the first time : Should fail
+        let env = mock_env("anyone", &coins(2, "token"));
+        let msg = HandleMsg::SignManifesto {};
+        let res_error = handle(&mut deps, env, msg);
+        match res_error {
+            Err(StdError::GenericErr { msg, .. }) => assert_eq!(  
+                msg,
+                format!( "User has already signed the Manifesto")
+            ),
+            _ => panic!("DO NOT ENTER HERE"),
         }
 
-        // only the original creator can reset the counter
-        let auth_env = mock_env("creator", &coins(2, "token"));
-        let msg = HandleMsg::Reset { count: 5 };
-        let _res = handle(&mut deps, auth_env, msg).unwrap();
 
-        // should now be 5
-        let res = query(&deps, QueryMsg::GetCount {}).unwrap();
-        let value: CountResponse = from_binary(&res).unwrap();
-        assert_eq!(5, value.count);
+        let res_ = query(&deps, QueryMsg::GetCount {}).unwrap();
+        let n_value: CountResponse = from_binary(&res_).unwrap();
+        assert_eq!(1, n_value.count);
+
     }
 }
