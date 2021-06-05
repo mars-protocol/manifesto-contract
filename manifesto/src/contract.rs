@@ -1,15 +1,14 @@
 use cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,log,
-    StdResult, Storage, Uint128, Decimal
+    StdResult, Storage
 };
-use cosmwasm_bignumber::{Decimal256, Uint256};
 use crate::msg::{SigneeResponse, CountResponse, HandleMsg, InitMsg, QueryMsg};
 use crate::state::{config, config_read, State, store_signee, read_signee};
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    env: Env,
-    msg: InitMsg,
+    _env: Env,
+    _msg: InitMsg,
 ) -> StdResult<InitResponse> {
     let state = State {
         signees: i32::from(0),

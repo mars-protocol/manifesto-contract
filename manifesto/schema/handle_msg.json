@@ -5,31 +5,11 @@
     {
       "type": "object",
       "required": [
-        "increment"
+        "sign_manifesto"
       ],
       "properties": {
-        "increment": {
+        "sign_manifesto": {
           "type": "object"
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "reset"
-      ],
-      "properties": {
-        "reset": {
-          "type": "object",
-          "required": [
-            "count"
-          ],
-          "properties": {
-            "count": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
         }
       }
     }
