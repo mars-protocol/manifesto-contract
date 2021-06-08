@@ -2,8 +2,8 @@ use cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,log,
     StdResult, Storage
 };
-use crate::msg::{SigneeResponse, CountResponse, HandleMsg, InitMsg, QueryMsg};
-use crate::state::{config, config_read, State, store_signee, read_signee};
+use crate::msg::{SignatureResponse, SigneeResponse, CountResponse, HandleMsg, InitMsg, QueryMsg};
+use crate::state::{config, config_read, State, store_signee, read_signee, Signature, create_signature, read_signature};
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -24,16 +24,27 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     match msg {
-        HandleMsg::SignManifesto {} => try_sign_manifesto(deps, env),
+        HandleMsg::SignManifesto { martian_date, martian_time } => try_sign_manifesto(deps, env, martian_date, martian_time),
     }
 }
 
 pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     _env: Env,
+    martian_date: String, 
+    martian_time: String
 ) -> StdResult<HandleResponse> {
 
     let signee =  _env.message.sender.clone();
+
+    if !is_valid_time(&martian_time) {
+        return Err(StdError::generic_err(format!( "Invalid Martian Time entered")));
+    }
+
+    if !is_valid_date(&martian_date) {
+        return Err(StdError::generic_err(format!( "Invalid Martian Date entered")));
+    }    
+    
 
     // Make sure the account has not already signed the Manifesto
     let res: Option<bool> = read_signee(&deps.storage).may_load( signee.to_string().as_bytes() )?;
@@ -47,6 +58,18 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
 
     // // Add the signee to the storage
     store_signee(&mut deps.storage).save(signee.to_string().as_bytes(), &true) ?;
+    
+    // STORE THE SIGNATURE
+    create_signature(
+        &mut deps.storage,
+        signee.to_string(),
+        Signature {
+            signee: deps.api.canonical_address(&signee)?,
+            martian_date: martian_date,
+            martian_time: martian_time
+        },
+    )?;
+
 
     // Update State
     config(&mut deps.storage).update(|mut state| {
@@ -71,6 +94,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     match msg {
         QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
         QueryMsg::IsSignee { address } => to_binary(&check_if_signee(deps, address)?),
+        QueryMsg::GetSignature { signee } => to_binary(&get_signee(deps, signee)?),
     }
 }
 
@@ -89,10 +113,31 @@ fn check_if_signee<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, addre
     return Ok(SigneeResponse { is_signee: is_signee })
 }
 
+fn get_signee<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, signee: String) -> StdResult<SignatureResponse> {
+    let signature: Signature =  read_signature(&deps.storage, signee )?;
+    let signee_human_addr = deps.api.human_address(&signature.signee)?;
+    return Ok(SignatureResponse {   signee: signee_human_addr.to_string() ,
+                                    martian_date : signature.martian_date,
+                                    martian_time: signature.martian_time
+                                })
+}
 
 
+fn is_valid_time(time: &str) -> bool {
+    let bytes = time.as_bytes();
+    if bytes.len() != 12 {
+        return false;
+    }
+    return true;
+}
 
-
+fn is_valid_date(date: &str) -> bool {
+    let bytes = date.as_bytes();
+    if  bytes.len() < 12 || bytes.len() > 24 {
+        return false;
+    }
+    return true;
+}
 
 
 #[cfg(test)]
