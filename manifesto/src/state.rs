@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{CanonicalAddr,HumanAddr, ReadonlyStorage, Storage, StdResult};
+use cosmwasm_std::{CanonicalAddr, ReadonlyStorage, Storage, StdResult};
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton,ReadonlyBucket,Bucket, bucket_read, bucket};
 
 pub static CONFIG_KEY: &[u8] = b"config";
@@ -39,9 +39,6 @@ pub fn read_signature<S: ReadonlyStorage>(storage: &S, signee_addr:String) -> St
     let signatures_bucket: ReadonlyBucket<S, Signature> = ReadonlyBucket::new(SIGNATURES_BUCKET, storage);
     signatures_bucket.load(signee_addr.as_bytes())
 }
-
-
-
 
 
 pub fn store_signee<S: Storage>(storage: &mut S) -> Bucket<S, bool> { 

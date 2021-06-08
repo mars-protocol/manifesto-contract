@@ -37,15 +37,16 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
 
     let signee =  _env.message.sender.clone();
 
+    // Verfify if Time is in the valid format
     if !is_valid_time(&martian_time) {
         return Err(StdError::generic_err(format!( "Invalid Martian Time entered")));
     }
 
+    // Verfify if Date is in the valid format
     if !is_valid_date(&martian_date) {
         return Err(StdError::generic_err(format!( "Invalid Martian Date entered")));
     }    
     
-
     // Make sure the account has not already signed the Manifesto
     let res: Option<bool> = read_signee(&deps.storage).may_load( signee.to_string().as_bytes() )?;
     let is_claimed = match res {
@@ -69,7 +70,6 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
             martian_time: martian_time
         },
     )?;
-
 
     // Update State
     config(&mut deps.storage).update(|mut state| {
@@ -102,7 +102,6 @@ fn query_count<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdRes
     let state = config_read(&deps.storage).load()?;
     Ok(CountResponse { count: state.signees })
 }
-
 
 fn check_if_signee<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, address: String) -> StdResult<SigneeResponse> {
     let res: Option<bool> = read_signee(&deps.storage).may_load( address.as_bytes() )?;
@@ -172,9 +171,33 @@ mod tests {
         let env = mock_env("creator", &coins(2, "token"));
         let _res = init(&mut deps, env, msg).unwrap();
 
+        // Sign the manifesto: Should fail with invalid date error
+        let env = mock_env("anyone", &coins(2, "token"));
+        let msg = HandleMsg::SignManifesto {martian_date:"21, 11 BML".to_string() , martian_time:"15:17:14 AMT".to_string()};
+        let res_error = handle(&mut deps, env, msg);
+        match res_error {
+            Err(StdError::GenericErr { msg, .. }) => assert_eq!(  
+                msg,
+                format!( "Invalid Martian Date entered")
+            ),
+            _ => panic!("DO NOT ENTER HERE"),
+        }
+
+        // Sign the manifesto the first time : Should fail with invalid time error
+        let env = mock_env("anyone", &coins(2, "token"));
+        let msg = HandleMsg::SignManifesto {martian_date:"21 Mesha, 11 BML".to_string() , martian_time:"15:1:14 AMT".to_string()};
+        let res_error = handle(&mut deps, env, msg);
+        match res_error {
+            Err(StdError::GenericErr { msg, .. }) => assert_eq!(  
+                msg,
+                format!( "Invalid Martian Time entered")
+            ),
+            _ => panic!("DO NOT ENTER HERE"),
+        }
+
         // Sign the manifesto the first time : Should be successful
         let env = mock_env("anyone", &coins(2, "token"));
-        let msg = HandleMsg::SignManifesto {};
+        let msg = HandleMsg::SignManifesto { martian_date:"20 Mesha, 11 BML".to_string() , martian_time:"14:17:14 AMT".to_string() };
         let _res = handle(&mut deps, env, msg).unwrap();
 
         // should increase counter by 1
@@ -184,7 +207,7 @@ mod tests {
 
         // Sign the manifesto the first time : Should fail
         let env = mock_env("anyone", &coins(2, "token"));
-        let msg = HandleMsg::SignManifesto {};
+        let msg = HandleMsg::SignManifesto {martian_date:"21 Mesha, 11 BML".to_string() , martian_time:"15:17:14 AMT".to_string()};
         let res_error = handle(&mut deps, env, msg);
         match res_error {
             Err(StdError::GenericErr { msg, .. }) => assert_eq!(  

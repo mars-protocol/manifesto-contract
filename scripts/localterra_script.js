@@ -18,12 +18,9 @@ async function main() {
     console.log('MANIFESTO ADDRESS : ' + manifesto_address )
 
     // SIGN MANIFESTO TX
-    let sign_msg = { "sign_manifesto": { "martian_date":"martian_date", "martian_time":"martian_time" } };
-    let resp = await executeContract(terra, wallet, manifesto_address, sign_msg );    
+    // let sign_msg = { "sign_manifesto": { "martian_date":"21 Mesha, 11 BML", "martian_time":"15:10:14 AMT" } };
+    // let resp = await executeContract(terra, wallet, manifesto_address, sign_msg );    
   }
 
   main()
 
-//   terracli query wasm contract-store terra18vd8fpwxzck93qlwghaj6arh4p7c5n896xzem5 '{"get_count":{}}'
-
-//   terracli query wasm contract-store terra18vd8fpwxzck93qlwghaj6arh4p7c5n896xzem5 '{"get_signature":{ "signee":"terra1x46rqay4d3cssq8gxxvqz8xt6nwlz4td20k38v" }}'
