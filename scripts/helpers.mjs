@@ -62,3 +62,9 @@ import {
     const mk = new MnemonicKey({ mnemonic: mnemonic });
     return terra.wallet(mk);
   }
+
+  export async function migrate(terra, wallet, contractAddress, newCodeId) {
+    const migrateMsg = new MsgMigrateContract(wallet.key.accAddress, contractAddress, newCodeId, {});
+    return await performTransaction(terra, wallet, migrateMsg);
+  }
+  

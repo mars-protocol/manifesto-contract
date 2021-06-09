@@ -2,7 +2,7 @@ use cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,log,
     StdResult, Storage
 };
-use crate::msg::{SignatureResponse, SigneeResponse, CountResponse, HandleMsg, InitMsg, QueryMsg};
+use crate::msg::{SignatureResponse, SigneeResponse, CountResponse, HandleMsg, InitMsg, QueryMsg, MigrateMsg};
 use crate::state::{config, config_read, State, store_signee, read_signee, Signature, create_signature, read_signature};
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
@@ -84,6 +84,12 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
     ];
 
     Ok(HandleResponse { messages, log, data: None, })
+}
+
+
+
+pub fn migrate<S: Storage, A: Api, Q: Querier>(_deps: &mut Extern<S, A, Q>, _env: Env, _msg: MigrateMsg) -> StdResult<HandleResponse> {
+    return Err(StdError::generic_err(format!( "Migration is not allowed")));
 }
 
 
