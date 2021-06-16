@@ -14,7 +14,7 @@ async function main() {
 
     let manifesto_init_msg = {  }
     let manifesto_address = await instantiateContract(terra, wallet, manifesto_id, manifesto_init_msg );
-    let manifesto_address = 'terra1apvkl45gnv2unlr9xccak6p7kar77a5nkpmevv';
+
     console.log('MANIFESTO ADDRESS : ' + manifesto_address )
 
     // SIGN MANIFESTO TX
