@@ -49,11 +49,11 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
     
     // Make sure the account has not already signed the Manifesto
     let res: Option<bool> = read_signee(&deps.storage).may_load( signee.to_string().as_bytes() )?;
-    let is_claimed = match res {
+    let is_signed = match res {
         None => false,
         Some(_res) => true,
     };
-    if is_claimed {
+    if is_signed {
         return Err(StdError::generic_err(format!( "User has already signed the Manifesto")));
     }    
 

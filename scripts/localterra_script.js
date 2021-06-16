@@ -14,13 +14,18 @@ async function main() {
 
     let manifesto_init_msg = {  }
     let manifesto_address = await instantiateContract(terra, wallet, manifesto_id, manifesto_init_msg );
-
+    let manifesto_address = 'terra1apvkl45gnv2unlr9xccak6p7kar77a5nkpmevv';
     console.log('MANIFESTO ADDRESS : ' + manifesto_address )
 
     // SIGN MANIFESTO TX
-    // let sign_msg = { "sign_manifesto": { "martian_date":"21 Mesha, 11 BML", "martian_time":"15:10:14 AMT" } };
-    // let resp = await executeContract(terra, wallet, manifesto_address, sign_msg );    
+    let response = await sign_manifesto(terra, wallet, manifesto_address, "21 Mesha, 11 BML", "15:10:14 AMT"); 
   }
+
+  async function sign_manifesto(terra, wallet, manifesto_address, martian_date, martian_time) {
+    let sign_msg = { "sign_manifesto": { "martian_date":martian_date, "martian_time":martian_time } };
+    let resp = await executeContract(terra, wallet, manifesto_address, sign_msg ); 
+    return resp;
+}
 
   main()
 
