@@ -2,6 +2,8 @@
 
 - This repository contains the source code and the deployment script for the smart contract implementing Mars Manifesto on the Terra blockchain.
 
+Martian Date follows the [Darian Calender](https://en.wikipedia.org/wiki/Darian_calendar) and the calculations for the Martian Time has been referenced from https://marsclock.com/ 
+
 ## Development
 
 ### Environment Setup
