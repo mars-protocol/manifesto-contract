@@ -1,5 +1,7 @@
-import {instantiateContract, uploadContract, executeContract, queryContract, migrate} from "./helpers.mjs";
+import {instantiateContract, uploadContract} from "./helpers.mjs";
+import {sign_manifesto, get_signeesCount, isSignee, get_signature} from "./manifesto_utils.js";
 import {LCDClient, LocalTerra, MnemonicKey} from "@terra-money/terra.js";
+
 
 async function main() {
 
@@ -24,17 +26,22 @@ async function main() {
     console.log('MANIFESTO ADDRESS : ' + manifesto_address )
 
     // SIGN MANIFESTO TX
-    let response = await sign_manifesto(terra, wallet, manifesto_address, "21 Mesha, 11 BML", "15:10:14 AMT");
+    let response = await sign_manifesto(terra, wallet, manifesto_address, "20 Leo, 11 BML", "24:59:59 MTC"); 
 
+    // GET SIGNEES COUNT
+    let signeesCount = await get_signeesCount(terra, manifesto_address);
+    console.log( "Total Signees : " + String(signeesCount.count) )
+
+    // CHECK IF THE ADDRESS IS THE SIGNEE
+    let isSignee_ = await isSignee(terra, manifesto_address, wallet.key.accAddress);
+    console.log("IS SIGNEE : " + isSignee_.is_signee)
+
+    // GET SIGNATURE
+    let signature_ = await get_signature(terra, manifesto_address,wallet.key.accAddress);
+    if (signature_ && signature_.signee == wallet.key.accAddress) {
+      console.log("SIGNATURE DETAILS : \n Signee : " + signature_.signee + " \n Martian Date : " + signature_.martian_date + " \n Martian Time : " + signature_.martian_time )
+    } 
   }
-
-
-async function sign_manifesto(terra, wallet, manifesto_address, martian_date, martian_time) {
-    let sign_msg = { "sign_manifesto": { "martian_date":martian_date, "martian_time":martian_time } };
-    let resp = await executeContract(terra, wallet, manifesto_address, sign_msg ); 
-    return resp;
-}
-
 
 
   main()

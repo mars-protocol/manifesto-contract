@@ -2,22 +2,28 @@ import {instantiateContract, uploadContract} from "./helpers.mjs";
 import {sign_manifesto, get_signeesCount, isSignee, get_signature} from "./manifesto_utils.js";
 import {LCDClient, LocalTerra, MnemonicKey} from "@terra-money/terra.js";
 
+
 async function main() {
 
-    // LOCAL TERRA INSTANCE
-    let terra = new LocalTerra();
-    let wallet = terra.wallets.test1;    
+    // TERRA TEST-NET
+    let terra = new LCDClient({
+      URL: 'https://fcd.terra.dev',
+      chainID: 'columbus-4',
+    });
+
+    // For testing. Never commit the memo 
+    let mk = new MnemonicKey({mnemonic:"",});
+    let wallet = terra.wallet(mk);   
     console.log("Wallet Address : " + wallet.key.accAddress )
   
     // MANIFESTO CONTRACT DEPLOYMENT
     let manifesto_id = await uploadContract(terra, wallet, '../manifesto/artifacts/manifesto_contract.wasm');
     console.log('MANIFESTO CONTRACT ID : ' + manifesto_id )
 
-    let manifesto_init_msg = {  }
+    let manifesto_init_msg = { }
     let manifesto_address = await instantiateContract(terra, wallet, manifesto_id, manifesto_init_msg );
 
     console.log('MANIFESTO ADDRESS : ' + manifesto_address )
-    // let manifesto_address = "terra18jeen6u5wygnxmlddxth6834mxnxjhgw9nvhep";
 
     // SIGN MANIFESTO TX
     let response = await sign_manifesto(terra, wallet, manifesto_address, "20 Leo, 11 BML", "24:59:59 MTC"); 
@@ -38,6 +44,4 @@ async function main() {
   }
 
 
-
   main()
-

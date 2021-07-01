@@ -5,6 +5,10 @@ use cosmwasm_std::{
 use crate::msg::{SignatureResponse, SigneeResponse, CountResponse, HandleMsg, InitMsg, QueryMsg, MigrateMsg};
 use crate::state::{config, config_read, State, store_signee, read_signee, Signature, create_signature, read_signature};
 
+//----------------------------------------------------------------------------------------
+// Entry points
+//----------------------------------------------------------------------------------------
+
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     _env: Env,
@@ -28,6 +32,28 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     }
 }
 
+pub fn query<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    msg: QueryMsg,
+) -> StdResult<Binary> {
+    match msg {
+        QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
+        QueryMsg::IsSignee { address } => to_binary(&check_if_signee(deps, address)?),
+        QueryMsg::GetSignature { signee } => to_binary(&get_signee(deps, signee)?),
+    }
+}
+
+pub fn migrate<S: Storage, A: Api, Q: Querier>(_deps: &mut Extern<S, A, Q>, _env: Env, _msg: MigrateMsg) -> StdResult<HandleResponse> {
+    return Err(StdError::generic_err(format!( "Migration is not allowed")));
+}
+
+//----------------------------------------------------------------------------------------
+// Handle functions
+//----------------------------------------------------------------------------------------
+
+/// @dev Stores signature details provided by the Signee. https://manifesto.marsprotocol.io/ : Web app to facilitate signing with Martian Date and Time
+/// @param martian_date : An equivalent martian date as according to th Darian Calender
+/// @param martian_time : Coordinated Martian Time is like UTC but for Mars
 pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     _env: Env,
@@ -86,29 +112,17 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse { messages, log, data: None, })
 }
 
+//----------------------------------------------------------------------------------------
+// Query functions
+//----------------------------------------------------------------------------------------
 
-
-pub fn migrate<S: Storage, A: Api, Q: Querier>(_deps: &mut Extern<S, A, Q>, _env: Env, _msg: MigrateMsg) -> StdResult<HandleResponse> {
-    return Err(StdError::generic_err(format!( "Migration is not allowed")));
-}
-
-
-pub fn query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    msg: QueryMsg,
-) -> StdResult<Binary> {
-    match msg {
-        QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
-        QueryMsg::IsSignee { address } => to_binary(&check_if_signee(deps, address)?),
-        QueryMsg::GetSignature { signee } => to_binary(&get_signee(deps, signee)?),
-    }
-}
-
+/// @dev Returns the total number of Signee's that have signed the Manifesto
 fn query_count<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<CountResponse> {
     let state = config_read(&deps.storage).load()?;
     Ok(CountResponse { count: state.signees })
 }
 
+/// @dev Returns True if the user has signed the manifesto
 fn check_if_signee<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, address: String) -> StdResult<SigneeResponse> {
     let res: Option<bool> = read_signee(&deps.storage).may_load( address.as_bytes() )?;
     let is_signee = match res {
@@ -118,6 +132,7 @@ fn check_if_signee<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, addre
     return Ok(SigneeResponse { is_signee: is_signee })
 }
 
+/// @dev Returns Signauture details of the signee
 fn get_signee<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, signee: String) -> StdResult<SignatureResponse> {
     let signature: Signature =  read_signature(&deps.storage, signee )?;
     let signee_human_addr = deps.api.human_address(&signature.signee)?;
@@ -127,6 +142,9 @@ fn get_signee<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, signee: St
                                 })
 }
 
+//----------------------------------------------------------------------------------------
+// Helper functions
+//----------------------------------------------------------------------------------------
 
 fn is_valid_time(time: &str) -> bool {
     let bytes = time.as_bytes();
@@ -143,6 +161,13 @@ fn is_valid_date(date: &str) -> bool {
     }
     return true;
 }
+
+
+//----------------------------------------------------------------------------------------
+// UNIT TESTS
+//----------------------------------------------------------------------------------------
+
+
 
 
 #[cfg(test)]
