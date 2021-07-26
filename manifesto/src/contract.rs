@@ -1,41 +1,42 @@
+#[cfg(not(feature = "library"))]
+use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,log,
+    attr, to_binary, Binary, Addr, Env, Querier, StdError,  Deps, DepsMut, MessageInfo, Reply, ReplyOn, Response, SubMsg, WasmMsg,
     StdResult, Storage
 };
 use crate::msg::{SignatureResponse, SigneeResponse, CountResponse, HandleMsg, InitMsg, QueryMsg, MigrateMsg};
 use crate::state::{config, config_read, State, store_signee, read_signee, Signature, create_signature, read_signature};
 
+use protobuf::Message;
+
 //----------------------------------------------------------------------------------------
 // Entry points
 //----------------------------------------------------------------------------------------
 
-pub fn init<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn instantiate(
+    deps: DepsMut,
     _env: Env,
-    _msg: InitMsg,
-) -> StdResult<InitResponse> {
+    info: MessageInfo,
+    msg: InitMsg,
+) -> StdResult<Response> {
+
     let state = State {
         signees: i32::from(0),
     };
-
     config(&mut deps.storage).save(&state)?;
-    Ok(InitResponse::default())
+    Ok(Response::default())
 }
 
-pub fn handle<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    msg: HandleMsg,
-) -> StdResult<HandleResponse> {
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: HandleMsg) -> StdResult<Response> {
     match msg {
         HandleMsg::SignManifesto { martian_date, martian_time } => try_sign_manifesto(deps, env, martian_date, martian_time),
     }
 }
 
-pub fn query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    msg: QueryMsg,
-) -> StdResult<Binary> {
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
         QueryMsg::IsSignee { address } => to_binary(&check_if_signee(deps, address)?),
@@ -43,8 +44,9 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     }
 }
 
-pub fn migrate<S: Storage, A: Api, Q: Querier>(_deps: &mut Extern<S, A, Q>, _env: Env, _msg: MigrateMsg) -> StdResult<HandleResponse> {
-    return Err(StdError::generic_err(format!( "Migration is not allowed")));
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
+    Ok(Response::default())
 }
 
 //----------------------------------------------------------------------------------------
@@ -54,14 +56,15 @@ pub fn migrate<S: Storage, A: Api, Q: Querier>(_deps: &mut Extern<S, A, Q>, _env
 /// @dev Stores signature details provided by the Signee. https://manifesto.marsprotocol.io/ : Web app to facilitate signing with Martian Date and Time
 /// @param martian_date : An equivalent martian date as according to th Darian Calender
 /// @param martian_time : Coordinated Martian Time is like UTC but for Mars
-pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+pub fn try_sign_manifesto(
+    deps: DepsMut,
     _env: Env,
+    info: MessageInfo,
     martian_date: String, 
     martian_time: String
-) -> StdResult<HandleResponse> {
+) -> StdResult<Response> {
 
-    let signee =  _env.message.sender.clone();
+    let signee =  info.sender.as_str();
 
     // Verfify if Time is in the valid format
     if !is_valid_time(&martian_time) {
@@ -74,7 +77,7 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
     }    
     
     // Make sure the account has not already signed the Manifesto
-    let res: Option<bool> = read_signee(&deps.storage).may_load( signee.to_string().as_bytes() )?;
+    let res: Option<bool> = read_signee(&deps.storage).may_load( signee.as_bytes() )?;
     let is_signed = match res {
         None => false,
         Some(_res) => true,
@@ -84,14 +87,14 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
     }    
 
     // // Add the signee to the storage
-    store_signee(&mut deps.storage).save(signee.to_string().as_bytes(), &true) ?;
+    store_signee(&mut deps.storage).save(signee.as_bytes(), &true) ?;
     
     // STORE THE SIGNATURE
     create_signature(
         &mut deps.storage,
         signee.to_string(),
         Signature {
-            signee: deps.api.canonical_address(&signee)?,
+            signee: deps.api.addr_canonicalize(signee)?,
             martian_date: martian_date,
             martian_time: martian_time
         },
@@ -104,12 +107,12 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
     })?;
 
     let messages= vec![];
-    let log = vec![
-        log("action", "sign_manifesto"),
-        log("signee", signee ),
+    let attributes = vec![
+        attr("action", "sign_manifesto"),
+        attr("signee", signee ),
     ];
 
-    Ok(HandleResponse { messages, log, data: None, })
+    Ok(Response { messages, attributes, data: None, events: vec![], })
 }
 
 //----------------------------------------------------------------------------------------
@@ -117,13 +120,13 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
 //----------------------------------------------------------------------------------------
 
 /// @dev Returns the total number of Signee's that have signed the Manifesto
-fn query_count<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<CountResponse> {
+fn query_count(deps: Deps) -> StdResult<CountResponse> {
     let state = config_read(&deps.storage).load()?;
     Ok(CountResponse { count: state.signees })
 }
 
 /// @dev Returns True if the user has signed the manifesto
-fn check_if_signee<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, address: String) -> StdResult<SigneeResponse> {
+fn check_if_signee(deps: Deps, address: String) -> StdResult<SigneeResponse> {
     let res: Option<bool> = read_signee(&deps.storage).may_load( address.as_bytes() )?;
     let is_signee = match res {
         None => false,
@@ -133,10 +136,10 @@ fn check_if_signee<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, addre
 }
 
 /// @dev Returns Signauture details of the signee
-fn get_signee<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, signee: String) -> StdResult<SignatureResponse> {
+fn get_signee(deps: Deps, signee: String) -> StdResult<SignatureResponse> {
     let signature: Signature =  read_signature(&deps.storage, signee )?;
-    let signee_human_addr = deps.api.human_address(&signature.signee)?;
-    return Ok(SignatureResponse {   signee: signee_human_addr.to_string() ,
+    let signee_human_addr = deps.api.addr_humanize(&signature.signee).to_string();
+    return Ok(SignatureResponse {   signee: signee_human_addr ,
                                     martian_date : signature.martian_date,
                                     martian_time: signature.martian_time
                                 })
