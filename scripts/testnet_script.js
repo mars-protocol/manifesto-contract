@@ -7,12 +7,12 @@ async function main() {
 
     // TERRA TEST-NET
     let terra = new LCDClient({
-      URL: "https://tequila-lcd.terra.dev",
-      chainID: "tequila-0004",
+      URL: "https://bombay-lcd.terra.dev",
+      chainID: "bombay-0008",
     });
 
     // For testing. Never commit the memo 
-    let mk = new MnemonicKey({mnemonic:"clutch panel dizzy track file recycle judge east cement angle vivid athlete person absorb horror cradle march spend glove arena illegal doll empower property",});
+    let mk = new MnemonicKey({mnemonic:"ribbon salon flash unit assume inhale nominee guard best cradle sort stamp inhale orbit crucial custom bulb another young repair capable bargain taste scissors",});
     let wallet = terra.wallet(mk);   
     console.log("Wallet Address : " + wallet.key.accAddress )
   

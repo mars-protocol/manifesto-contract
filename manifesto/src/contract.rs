@@ -1,8 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_binary, Binary, Addr, Env, Querier, StdError,  Deps, DepsMut, MessageInfo, Reply, ReplyOn, Response, SubMsg, WasmMsg,
-    StdResult, Storage
+    attr, to_binary, Binary, Env, StdError,  Deps, DepsMut, MessageInfo,  Response, StdResult
 };
 use crate::msg::{SignatureResponse, SigneeResponse, CountResponse, HandleMsg, InitMsg, QueryMsg, MigrateMsg};
 use crate::state::{State,CONFIG, Signature,SIGNATURES};
@@ -17,8 +16,8 @@ use protobuf::Message;
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
-    msg: InitMsg,
+    _info: MessageInfo,
+    _msg: InitMsg,
 ) -> StdResult<Response> {
     let state = State {
         signees: i32::from(0),
@@ -78,7 +77,7 @@ pub fn try_sign_manifesto(
     
     // Make sure the account has not already signed the Manifesto
     if let Ok(Some(_)) = SIGNATURES.may_load(deps.storage, signee.as_bytes() ) {
-        return Err(StdError::generic_err("User has already Signed"));
+        return Err(StdError::generic_err("User has already signed"));
     }
 
     // // Add the signee to the storage
@@ -91,8 +90,6 @@ pub fn try_sign_manifesto(
             martian_time: martian_time
         },
     )?;
-
-    let signees = CONFIG.load(deps.storage)?;
 
     // Update State
     CONFIG.update(deps.storage, |mut _state| -> StdResult<_> {
@@ -168,88 +165,101 @@ fn is_valid_date(date: &str) -> bool {
 
 
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use cosmwasm_std::testing::{mock_dependencies, mock_env};
-//     use cosmwasm_std::{coins, from_binary, StdError};
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::{coins, Addr, from_binary, StdError};
 
-//     #[test]
-//     fn proper_initialization() {
-//         let mut deps = mock_dependencies(20, &[]);
+    #[test]
+    fn proper_initialization() {
+        let mut deps = mock_dependencies(&[]);
 
-//         let msg = InitMsg { };
-//         let env = mock_env("creator", &coins(1000, "earth"));
+        let msg = InitMsg { };
+        let env = mock_env();
+        let info = mock_info("someone");
 
-//         // we can just call .unwrap() to assert this was a success
-//         let res = init(&mut deps, env, msg).unwrap();
-//         assert_eq!(0, res.messages.len());
+        // we can just call .unwrap() to assert this was a success
+        let res = instantiate(deps.as_mut(), env.clone(), info, msg).unwrap();
+        assert_eq!(0, res.messages.len());
 
-//         // it worked, let's query the state
-//         let res = query(&deps, QueryMsg::GetCount {}).unwrap();
-//         let value: CountResponse = from_binary(&res).unwrap();
-//         assert_eq!(0, value.count);
-//     }
+        // it worked, let's query the state
+        let res = query(deps.as_ref(), env.clone(), QueryMsg::GetCount {}).unwrap();
+        let value: CountResponse = from_binary(&res).unwrap();
+        assert_eq!(0, value.count);
+    }
 
-//     #[test]
-//     fn sign_manifesto() {
-//         let mut deps = mock_dependencies(20, &coins(2, "token"));
+    #[test]
+    fn sign_manifesto() {
+        let mut deps = mock_dependencies(&[]);
         
-//         // Iniitalize env
-//         let msg = InitMsg { };
-//         let env = mock_env("creator", &coins(2, "token"));
-//         let _res = init(&mut deps, env, msg).unwrap();
+        // Iniitalize env
+        let msg = InitMsg { };
+        let env = mock_env();
+        let info = mock_info("owner");
+        let res = instantiate(deps.as_mut(), env,info, msg).unwrap();
 
-//         // Sign the manifesto: Should fail with invalid date error
-//         let env = mock_env("anyone", &coins(2, "token"));
-//         let msg = HandleMsg::SignManifesto {martian_date:"21, 11 BML".to_string() , martian_time:"15:17:14 AMT".to_string()};
-//         let res_error = handle(&mut deps, env, msg);
-//         match res_error {
-//             Err(StdError::GenericErr { msg, .. }) => assert_eq!(  
-//                 msg,
-//                 format!( "Invalid Martian Date entered")
-//             ),
-//             _ => panic!("DO NOT ENTER HERE"),
-//         }
+        // Sign the manifesto: Should fail with invalid date error
+        let env = mock_env();
+        let info = mock_info("signer");
+        let msg = HandleMsg::SignManifesto {martian_date:"21, 11 BML".to_string() , martian_time:"15:17:14 AMT".to_string()};
+        let res_error = execute( deps.as_mut() , env, info, msg);
+        match res_error {
+            Err(StdError::GenericErr { msg, .. }) => assert_eq!(  
+                msg,
+                format!( "Invalid Martian Date entered")
+            ),
+            _ => panic!("DO NOT ENTER HERE"),
+        }
 
-//         // Sign the manifesto the first time : Should fail with invalid time error
-//         let env = mock_env("anyone", &coins(2, "token"));
-//         let msg = HandleMsg::SignManifesto {martian_date:"21 Mesha, 11 BML".to_string() , martian_time:"15:1:14 AMT".to_string()};
-//         let res_error = handle(&mut deps, env, msg);
-//         match res_error {
-//             Err(StdError::GenericErr { msg, .. }) => assert_eq!(  
-//                 msg,
-//                 format!( "Invalid Martian Time entered")
-//             ),
-//             _ => panic!("DO NOT ENTER HERE"),
-//         }
+        // Sign the manifesto: Should fail with invalid time error
+        let env = mock_env();
+        let info = mock_info("signer");
+        let msg = HandleMsg::SignManifesto {martian_date:"21 Mesha, 11 BML".to_string() , martian_time:"15:1:14 AMT".to_string()};
+        let res_error = execute( deps.as_mut() , env, info, msg);
+        match res_error {
+            Err(StdError::GenericErr { msg, .. }) => assert_eq!(  
+                msg,
+                format!( "Invalid Martian Time entered")
+            ),
+            _ => panic!("DO NOT ENTER HERE"),
+        }
 
-//         // Sign the manifesto the first time : Should be successful
-//         let env = mock_env("anyone", &coins(2, "token"));
-//         let msg = HandleMsg::SignManifesto { martian_date:"20 Mesha, 11 BML".to_string() , martian_time:"14:17:14 AMT".to_string() };
-//         let _res = handle(&mut deps, env, msg).unwrap();
+        // Sign the manifesto the first time : Should be successful
+        let env = mock_env();
+        let info = mock_info("signer");
+        let msg = HandleMsg::SignManifesto { martian_date:"20 Mesha, 11 BML".to_string() , martian_time:"14:17:14 AMT".to_string() };
+        let _res = execute( deps.as_mut() , env.clone(), info.clone(), msg).unwrap();
 
-//         // should increase counter by 1
-//         let res = query(&deps, QueryMsg::GetCount {}).unwrap();
-//         let value: CountResponse = from_binary(&res).unwrap();
-//         assert_eq!(1, value.count);
+        // should increase counter by 1
+        let res = query(deps.as_ref(), env.clone(), QueryMsg::GetCount {}).unwrap();
+        let value: CountResponse = from_binary(&res).unwrap();
+        assert_eq!(1, value.count);
 
-//         // Sign the manifesto the first time : Should fail
-//         let env = mock_env("anyone", &coins(2, "token"));
-//         let msg = HandleMsg::SignManifesto {martian_date:"21 Mesha, 11 BML".to_string() , martian_time:"15:17:14 AMT".to_string()};
-//         let res_error = handle(&mut deps, env, msg);
-//         match res_error {
-//             Err(StdError::GenericErr { msg, .. }) => assert_eq!(  
-//                 msg,
-//                 format!( "User has already signed the Manifesto")
-//             ),
-//             _ => panic!("DO NOT ENTER HERE"),
-//         }
+        // Sign the manifesto the 2nd time : Should fail
+        let env = mock_env();
+        let msg = HandleMsg::SignManifesto {martian_date:"21 Mesha, 11 BML".to_string() , martian_time:"15:17:14 AMT".to_string()};
+        let res_error = execute( deps.as_mut() , env.clone() , info.clone(), msg);
+        match res_error {
+            Err(StdError::GenericErr { msg, .. }) => assert_eq!(  
+                msg,
+                format!( "User has already signed")
+            ),
+            _ => panic!("DO NOT ENTER HERE"),
+        }
 
 
-//         let res_ = query(&deps, QueryMsg::GetCount {}).unwrap();
-//         let n_value: CountResponse = from_binary(&res_).unwrap();
-//         assert_eq!(1, n_value.count);
+        let res_ = query(deps.as_ref() , env.clone(), QueryMsg::GetCount {}).unwrap();
+        let n_value: CountResponse = from_binary(&res_).unwrap();
+        assert_eq!(1, n_value.count);
 
-//     }
-// }
+    }
+
+    pub fn mock_info(sender: &str) -> MessageInfo {
+        MessageInfo {
+            sender: Addr::unchecked(sender),
+            funds: vec![],
+        }
+    }
+
+}

@@ -4,7 +4,6 @@
     "private": true,
     "type": "module",
     "dependencies": {
-        "@mirror-protocol/mirror-airdrop": "^1.0.7",
         "@terra-money/terra.js": "^1.7.0",
         "chalk": "^4.1.1",
         "core-js": "^3.6.5",
