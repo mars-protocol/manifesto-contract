@@ -12,7 +12,8 @@
         "esm": "^3.2.25",
         "esm-ts-node": "^1.0.7",
         "firebase": "^8.6.4",
-        "yargs": "^17.0.1"
+        "yargs": "^17.0.1",
+        "yargs-parser": "^20.2.9"
     },
     "eslintConfig": {
         "root": true,

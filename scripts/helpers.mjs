@@ -10,12 +10,17 @@ import {
   } from '@terra-money/terra.js';
   import { readFileSync } from 'fs';
 
+  // Related to transactions
+  export const GAS_LIMIT = 30000000;
+  export const GAS_AMOUNT = 4500000;
+
   export async function performTransaction(terra, wallet, msg) {
+    console.log(wallet.key.accAddress);
     const tx = await wallet.createAndSignTx({
       msgs: [msg],
-      fee: new StdFee(30000000, [
-        new Coin('uluna', 4500000),
-        new Coin('uusd', 4500000)
+      fee: new StdFee(GAS_LIMIT, [
+        new Coin("uluna", GAS_AMOUNT),
+        new Coin("uusd", GAS_AMOUNT),
       ]),
     });
     const result = await terra.tx.broadcast(tx);
