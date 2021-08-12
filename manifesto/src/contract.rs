@@ -1,12 +1,12 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_binary, Binary, Env, StdError,  Deps, DepsMut, MessageInfo,  Response, StdResult
+    to_binary, Binary, Env, StdError,  Deps, DepsMut, MessageInfo,  Response, StdResult
 };
 use crate::msg::{SignatureResponse, SigneeResponse, CountResponse, HandleMsg, InitMsg, QueryMsg, MigrateMsg};
 use crate::state::{State,CONFIG, Signature,SIGNATURES};
 
-use protobuf::Message;
+// use protobuf::Message;
 
 //----------------------------------------------------------------------------------------
 // Entry points
@@ -97,12 +97,12 @@ pub fn try_sign_manifesto(
         Ok(_state)
     })?;
 
-    let attributes = vec![
-        attr("action", "sign_manifesto"),
-        attr("signee", signee ),
-    ];
+    // let attributes = vec![
+    //     attr("action", "sign_manifesto"),
+    //     attr("signee", signee ),
+    // ];
 
-    Ok(Response { messages: vec![], attributes, data: None, events: vec![], })
+    Ok( Response::new().add_attribute("action", "sign_manifesto").add_attribute("signee", signee) )
 }
 
 //----------------------------------------------------------------------------------------
