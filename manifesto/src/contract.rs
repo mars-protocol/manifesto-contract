@@ -3,7 +3,7 @@ use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     to_binary, Binary, Env, StdError,  Deps, DepsMut, MessageInfo,  Response, StdResult
 };
-use crate::msg::{SignatureResponse, SigneeResponse, CountResponse, HandleMsg, InitMsg, QueryMsg, MigrateMsg};
+use crate::msg::{SignatureResponse, SigneeResponse, ConfigResponse, HandleMsg, InitMsg, QueryMsg, MigrateMsg};
 use crate::state::{State,CONFIG, Signature,SIGNATURES};
 
 // use protobuf::Message;
@@ -20,7 +20,8 @@ pub fn instantiate(
     _msg: InitMsg,
 ) -> StdResult<Response> {
     let state = State {
-        signees: i32::from(0),
+        signees_count: i32::from(0),
+        max_signees_limit: _msg.max_signees_limit
     };
     CONFIG.save(deps.storage,&state)?;
     Ok(Response::default())
@@ -37,7 +38,7 @@ pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: HandleMsg) -> St
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
+        QueryMsg::Config {} => to_binary(&query_config(deps)?),
         QueryMsg::IsSignee { address } => to_binary(&check_if_signee(deps, address)?),
         QueryMsg::GetSignature { signee } => to_binary(&get_signature(deps, signee)?),
     }
@@ -63,22 +64,31 @@ pub fn try_sign_manifesto(
     martian_time: String
 ) -> StdResult<Response> {
 
+    let mut state_: State = CONFIG.load(deps.storage)?;
     let signee =  info.sender.as_str();
 
     // Verfify if Time is in the valid format
     if !is_valid_time(&martian_time) {
-        return Err(StdError::generic_err(format!( "Invalid Martian Time entered")));
+        return Err(StdError::generic_err(format!( "Invalid Martian Time")));
     }
 
     // Verfify if Date is in the valid format
     if !is_valid_date(&martian_date) {
-        return Err(StdError::generic_err(format!( "Invalid Martian Date entered")));
+        return Err(StdError::generic_err(format!( "Invalid Martian Date")));
     }    
-    
+
+    // Check if max signees allowed limit has not exceeded yet
+    if state_.max_signees_limit >= state_.signees_count {
+        return Err(StdError::generic_err(format!( "Max signees allowed limit reached")));
+    }      
+
     // Make sure the account has not already signed the Manifesto
     if let Ok(Some(_)) = SIGNATURES.may_load(deps.storage, signee.as_bytes() ) {
         return Err(StdError::generic_err("User has already signed"));
     }
+
+    // Increment signees count
+    state_.signees_count += 1;
 
     // // Add the signee to the storage
     SIGNATURES.save(
@@ -92,28 +102,29 @@ pub fn try_sign_manifesto(
     )?;
 
     // Update State
-    CONFIG.update(deps.storage, |mut _state| -> StdResult<_> {
-        _state.signees = _state.signees + 1;
-        Ok(_state)
-    })?;
+    CONFIG.save(deps.storage, &state_)?;
 
     // let attributes = vec![
     //     attr("action", "sign_manifesto"),
     //     attr("signee", signee ),
     // ];
 
-    Ok( Response::new().add_attribute("action", "sign_manifesto").add_attribute("signee", signee) )
+    Ok( Response::new().add_attribute("action", "sign_manifesto").add_attribute("signee", signee).add_attribute("count", state_.signees_count.to_string() ) )
 }
 
 //----------------------------------------------------------------------------------------
 // Query functions
 //----------------------------------------------------------------------------------------
 
-/// @dev Returns the total number of Signee's that have signed the Manifesto
-fn query_count(deps: Deps) -> StdResult<CountResponse> {
+/// @dev Returns the max number of Signatures allowed to sign the Manifesto
+fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     let state = CONFIG.load(deps.storage)?;
-    Ok(CountResponse { count: state.signees })
+    Ok(ConfigResponse { 
+        signees_count: state.signees_count,
+        max_signees_allowed: state.max_signees_limit
+     })
 }
+
 
 /// @dev Returns True if the user has signed the manifesto
 fn check_if_signee(deps: Deps, address: String) -> StdResult<SigneeResponse> {

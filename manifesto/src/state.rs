@@ -7,7 +7,8 @@ use cw_storage_plus::{Item, Map};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct State {
-    pub signees: i32,
+    pub signees_count: i32,
+    pub max_signees_limit: i32
 }
 
 pub const CONFIG: Item<State> = Item::new("config");

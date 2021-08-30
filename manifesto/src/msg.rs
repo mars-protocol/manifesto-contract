@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
+    pub max_signees_limit: i32
 }
 
 
@@ -18,16 +19,17 @@ pub enum HandleMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
+    Config {},
     // GetCount returns the current count as a json-encoded number
-    GetCount {},
     IsSignee { address: String},
     GetSignature { signee: String }
 }
 
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct CountResponse {
-    pub count: i32,
+pub struct ConfigResponse {
+    pub signees_count: i32,
+    pub max_signees_allowed: i32,
 }
 
 // We define a custom struct for each query response
