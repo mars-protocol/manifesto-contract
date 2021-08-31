@@ -1,1 +1,1 @@
-97e4f144f7823b8cd7863adcaaa2605e30318dfc1f2f08824c320fca2e7e976e  manifesto_contract.wasm
+63921ce7d5eb8bdf09e215ddb0bae6fdf343eb57071757036cfdf3a89fe40031  manifesto_contract.wasm

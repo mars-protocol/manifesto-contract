@@ -10,9 +10,10 @@ import {
   } from '@terra-money/terra.js';
   import { readFileSync } from 'fs';
 
-  export async function performTransaction(terra, wallet, msg) {
+  export async function performTransaction(terra, wallet, msg, memo_text=null) {
     const tx = await wallet.createAndSignTx({
       msgs: [msg],
+      memo: memo_text,
       fee: new StdFee(30000000, [
         new Coin('uluna', 4500000),
         new Coin('uusd', 4500000)
@@ -35,9 +36,9 @@ import {
     return Number(result.logs[0].eventsByType.store_code.code_id[0]) //code_id
   }
   
-  export async function instantiateContract(terra, wallet, codeId, msg) {
+  export async function instantiateContract(terra, wallet, codeId, msg, memo_text) {
     const instantiateMsg = new MsgInstantiateContract(wallet.key.accAddress, codeId, msg, undefined, true);
-    let result = await performTransaction(terra, wallet, instantiateMsg)
+    let result = await performTransaction(terra, wallet, instantiateMsg, memo_text)
     return result.logs[0].events[0].attributes[2].value //contract address
   }
   

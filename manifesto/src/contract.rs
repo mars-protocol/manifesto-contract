@@ -2,7 +2,7 @@ use cosmwasm_std::{
     to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,log,
     StdResult, Storage
 };
-use crate::msg::{SignatureResponse, SigneeResponse, CountResponse, HandleMsg, InitMsg, QueryMsg, MigrateMsg};
+use crate::msg::{SignatureResponse, SigneeResponse, ConfigResponse, HandleMsg, InitMsg, QueryMsg, MigrateMsg};
 use crate::state::{config, config_read, State, store_signee, read_signee, Signature, create_signature, read_signature};
 
 //----------------------------------------------------------------------------------------
@@ -15,7 +15,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     _msg: InitMsg,
 ) -> StdResult<InitResponse> {
     let state = State {
-        signees: i32::from(0),
+        signees_count: 0 as u32,
+        max_signees_allowed: _msg.max_signees_allowed
     };
 
     config(&mut deps.storage).save(&state)?;
@@ -37,7 +38,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
-        QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
+        QueryMsg::Config {} => to_binary(&query_config(deps)?),
         QueryMsg::IsSignee { address } => to_binary(&check_if_signee(deps, address)?),
         QueryMsg::GetSignature { signee } => to_binary(&get_signee(deps, signee)?),
     }
@@ -61,18 +62,24 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
     martian_time: String
 ) -> StdResult<HandleResponse> {
 
+    let state_ = config_read(&deps.storage).load()?;
     let signee =  _env.message.sender.clone();
 
-    // Verfify if Time is in the valid format
+    // Verify if Time is in the valid format
     if !is_valid_time(&martian_time) {
-        return Err(StdError::generic_err(format!( "Invalid Martian Time entered")));
+        return Err(StdError::generic_err(format!( "Invalid Martian Time")));
     }
 
-    // Verfify if Date is in the valid format
+    // Verify if Date is in the valid format
     if !is_valid_date(&martian_date) {
-        return Err(StdError::generic_err(format!( "Invalid Martian Date entered")));
+        return Err(StdError::generic_err(format!( "Invalid Martian Date")));
     }    
     
+    // Verify if Date is in the valid format
+    if state_.signees_count >= state_.max_signees_allowed {
+        return Err(StdError::generic_err(format!( "Max signee limit reached")));
+    }    
+
     // Make sure the account has not already signed the Manifesto
     let res: Option<bool> = read_signee(&deps.storage).may_load( signee.to_string().as_bytes() )?;
     let is_signed = match res {
@@ -83,7 +90,7 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err(format!( "User has already signed the Manifesto")));
     }    
 
-    // // Add the signee to the storage
+    // Add the signee to the storage
     store_signee(&mut deps.storage).save(signee.to_string().as_bytes(), &true) ?;
     
     // STORE THE SIGNATURE
@@ -99,7 +106,7 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
 
     // Update State
     config(&mut deps.storage).update(|mut state| {
-        state.signees += 1;
+        state.signees_count += 1 as u32;
         Ok(state)
     })?;
 
@@ -117,9 +124,13 @@ pub fn try_sign_manifesto<S: Storage, A: Api, Q: Querier>(
 //----------------------------------------------------------------------------------------
 
 /// @dev Returns the total number of Signee's that have signed the Manifesto
-fn query_count<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<CountResponse> {
+fn query_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<ConfigResponse> {
     let state = config_read(&deps.storage).load()?;
-    Ok(CountResponse { count: state.signees })
+
+    Ok(ConfigResponse { 
+        signees_count: state.signees_count,
+        max_signees_allowed: state.max_signees_allowed
+    })
 }
 
 /// @dev Returns True if the user has signed the manifesto
@@ -180,7 +191,7 @@ mod tests {
     fn proper_initialization() {
         let mut deps = mock_dependencies(20, &[]);
 
-        let msg = InitMsg { };
+        let msg = InitMsg { max_signees_allowed : 1280 as u32 };
         let env = mock_env("creator", &coins(1000, "earth"));
 
         // we can just call .unwrap() to assert this was a success
@@ -188,9 +199,9 @@ mod tests {
         assert_eq!(0, res.messages.len());
 
         // it worked, let's query the state
-        let res = query(&deps, QueryMsg::GetCount {}).unwrap();
-        let value: CountResponse = from_binary(&res).unwrap();
-        assert_eq!(0, value.count);
+        let res = query(&deps, QueryMsg::Config {}).unwrap();
+        let value: ConfigResponse = from_binary(&res).unwrap();
+        assert_eq!(0, value.signees_count);
     }
 
     #[test]
@@ -198,7 +209,7 @@ mod tests {
         let mut deps = mock_dependencies(20, &coins(2, "token"));
         
         // Iniitalize env
-        let msg = InitMsg { };
+        let msg = InitMsg { max_signees_allowed : 2 as u32 };
         let env = mock_env("creator", &coins(2, "token"));
         let _res = init(&mut deps, env, msg).unwrap();
 
@@ -209,7 +220,7 @@ mod tests {
         match res_error {
             Err(StdError::GenericErr { msg, .. }) => assert_eq!(  
                 msg,
-                format!( "Invalid Martian Date entered")
+                format!( "Invalid Martian Date")
             ),
             _ => panic!("DO NOT ENTER HERE"),
         }
@@ -221,7 +232,7 @@ mod tests {
         match res_error {
             Err(StdError::GenericErr { msg, .. }) => assert_eq!(  
                 msg,
-                format!( "Invalid Martian Time entered")
+                format!( "Invalid Martian Time")
             ),
             _ => panic!("DO NOT ENTER HERE"),
         }
@@ -232,11 +243,11 @@ mod tests {
         let _res = handle(&mut deps, env, msg).unwrap();
 
         // should increase counter by 1
-        let res = query(&deps, QueryMsg::GetCount {}).unwrap();
-        let value: CountResponse = from_binary(&res).unwrap();
-        assert_eq!(1, value.count);
+        let res = query(&deps, QueryMsg::Config {}).unwrap();
+        let value: ConfigResponse = from_binary(&res).unwrap();
+        assert_eq!(1, value.signees_count);
 
-        // Sign the manifesto the first time : Should fail
+        // Sign the manifesto the second time : Should fail
         let env = mock_env("anyone", &coins(2, "token"));
         let msg = HandleMsg::SignManifesto {martian_date:"21 Mesha, 11 BML".to_string() , martian_time:"15:17:14 AMT".to_string()};
         let res_error = handle(&mut deps, env, msg);
@@ -248,10 +259,31 @@ mod tests {
             _ => panic!("DO NOT ENTER HERE"),
         }
 
+        let res_ = query(&deps, QueryMsg::Config {}).unwrap();
+        let n_value: ConfigResponse = from_binary(&res_).unwrap();
+        assert_eq!(1, n_value.signees_count);
 
-        let res_ = query(&deps, QueryMsg::GetCount {}).unwrap();
-        let n_value: CountResponse = from_binary(&res_).unwrap();
-        assert_eq!(1, n_value.count);
+        // Sign the manifesto the first time (2nd User) : Should be successful
+        let env = mock_env("secondUser", &coins(2, "token"));
+        let msg = HandleMsg::SignManifesto { martian_date:"20 Mesha, 11 BML".to_string() , martian_time:"14:17:14 AMT".to_string() };
+        let _res = handle(&mut deps, env, msg).unwrap();
+
+        // should increase counter by 1
+        let res = query(&deps, QueryMsg::Config {}).unwrap();
+        let value: ConfigResponse = from_binary(&res).unwrap();
+        assert_eq!(2, value.signees_count);
+
+        // Sign the manifesto by 3rd user: Should fail with max limit reached error
+        let env = mock_env("user3", &coins(2, "token"));
+        let msg = HandleMsg::SignManifesto {martian_date:"21 Mesha, 11 BML".to_string() , martian_time:"15:17:14 AMT".to_string()};
+        let res_error = handle(&mut deps, env, msg);
+        match res_error {
+            Err(StdError::GenericErr { msg, .. }) => assert_eq!(  
+                msg,
+                format!( "Max signee limit reached")
+            ),
+            _ => panic!("DO NOT ENTER HERE"),
+        }
 
     }
 }

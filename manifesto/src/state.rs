@@ -10,7 +10,9 @@ pub static  SIGNATURES_BUCKET: &[u8] = b"signatures_bucket";
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct State {
-    pub signees: i32,
+    pub signees_count: u32,
+    pub max_signees_allowed: u32,
+
 }
 
 pub fn config<S: Storage>(storage: &mut S) -> Singleton<S, State> {
