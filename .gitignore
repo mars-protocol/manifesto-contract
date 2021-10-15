@@ -1,1 +1,6 @@
-scripts/node_modules
+target
+Cargo.lock
+/scripts/node_modules
+artifacts
+test
+.idea

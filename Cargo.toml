@@ -1,0 +1,29 @@
+[workspace]
+members = [
+    "contracts/manifesto", 
+     "contracts/medal", 
+     "contracts/medal_redeemed", 
+    "packages/*"
+]
+
+
+[profile.release.package.astroport]
+opt-level = 3
+debug = false
+debug-assertions = false
+codegen-units = 1
+incremental = false
+
+
+[profile.release.package.astroport-periphery]
+opt-level = 3
+debug = false
+debug-assertions = false
+codegen-units = 1
+incremental = false
+
+
+[profile.release]
+rpath = false
+lto = true
+overflow-checks = true
