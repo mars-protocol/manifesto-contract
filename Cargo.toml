@@ -2,7 +2,7 @@
 members = [
     "contracts/manifesto", 
      "contracts/medal", 
-     "contracts/medal_redeemed", 
+    #  "contracts/medal_redeemed", 
     "packages/*"
 ]
 
