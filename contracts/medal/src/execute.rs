@@ -1,7 +1,9 @@
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128};
+use cosmwasm_std::{
+    to_binary, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdResult, WasmMsg,
+};
 
 use cw2::set_contract_version;
 use cw721::{ContractInfoResponse, CustomMsg, Cw721Execute, Cw721ReceiveMsg, Expiration};
@@ -47,6 +49,9 @@ where
     ) -> Result<Response<C>, ContractError> {
         match msg {
             ExecuteMsg::Mint(msg) => self.mint(deps, env, info, msg),
+            ExecuteMsg::UpdateMedalRedeemAddress { medal_redeem_addr } => {
+                self.update_medal_redeem_address(deps, env, info, medal_redeem_addr)
+            }
             ExecuteMsg::Approve {
                 spender,
                 token_id,
@@ -68,7 +73,36 @@ where
                 token_id,
                 msg,
             } => self.send_nft(deps, env, info, contract, token_id, msg),
+            ExecuteMsg::RedeemMedal { token_id } => self.redeem_medal(deps, env, info, token_id),
         }
+    }
+}
+
+// TODO pull this into some sort of trait extension??
+impl<'a, T, C> Cw721Contract<'a, T, C>
+where
+    T: Serialize + DeserializeOwned + Clone,
+    C: CustomMsg,
+{
+    pub fn update_medal_redeem_address(
+        &self,
+        deps: DepsMut,
+        _env: Env,
+        info: MessageInfo,
+        medal_redeem_addr: String,
+    ) -> Result<Response<C>, ContractError> {
+        let minter = self.minter.load(deps.storage)?;
+
+        if info.sender != minter {
+            return Err(ContractError::Unauthorized {});
+        }
+
+        // Updates the MEDAL (Redeemed) contract address
+        self.update_medal_redeem_addr(deps.storage, deps.api.addr_validate(&medal_redeem_addr)?)?;
+
+        Ok(Response::new()
+            .add_attribute("action", "update_medal_redeem_address")
+            .add_attribute("medal_redeem_addr", medal_redeem_addr))
     }
 }
 
@@ -112,6 +146,61 @@ where
             .add_attribute("action", "mint")
             .add_attribute("minter", info.sender)
             .add_attribute("token_id", msg.token_id))
+    }
+}
+
+// TODO pull this into some sort of trait extension??
+impl<'a, T, C> Cw721Contract<'a, T, C>
+where
+    T: Serialize + DeserializeOwned + Clone,
+    C: CustomMsg,
+{
+    pub fn redeem_medal(
+        &self,
+        deps: DepsMut,
+        _env: Env,
+        info: MessageInfo,
+        token_id: String,
+    ) -> Result<Response<C>, ContractError> {
+        let user_addr = info.sender.clone();
+        let token = self.tokens.load(deps.storage, &token_id)?;
+
+        // ensure we have permissions
+        self.check_can_send(deps.as_ref(), &_env, &info, &token)?;
+
+        // Remove (Burn) the MEDAL Token
+        self.tokens.remove(deps.storage, &token_id)?;
+
+        // MEDAL (Redeem) Address
+        let medal_redeem_addr = self.get_medal_redeem_addr(deps.storage)?;
+
+        // MEDAL (Redeem) ID ::: To Be Minted
+        let redeem_medal_id = self.redeemed_tokens_count(deps.storage)?;
+
+        let mint_redeemed_medal_msg = MintMsg {
+            token_id: redeem_medal_id.to_string(),
+            owner: user_addr.to_string(),
+            name: "R-MEDAL".to_string(),
+            description: None,
+            image: None,
+            extension: None,
+        };
+
+        // COSMOS MSG :: TO MINT THE MEDAL (REDEEM) TOKEN
+        let mint_redeemed_medal_msg = CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: medal_redeem_addr.to_string(),
+            msg: to_binary(&ExecuteMsg::Mint(mint_redeemed_medal_msg))?,
+            funds: vec![],
+        });
+
+        // Increment Redeemed Medals Count
+        self.increment_redeemed_tokens(deps.storage)?;
+
+        Ok(Response::new()
+            .add_attribute("action", "redeem")
+            .add_attribute("redeemer", user_addr)
+            .add_attribute("token_id", token_id))
+        // }
     }
 }
 

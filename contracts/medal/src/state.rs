@@ -1,4 +1,3 @@
-
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -15,11 +14,12 @@ where
 {
     pub contract_info: Item<'a, ContractInfoResponse>,
     pub minter: Item<'a, Addr>,
+    pub medal_redeem: Item<'a, Addr>,
     pub token_count: Item<'a, u64>,
+    pub redeem_count: Item<'a, u64>,
     /// Stored as (granter, operator) giving operator full control over granter's account
     pub operators: Map<'a, (&'a Addr, &'a Addr), Expiration>,
     pub tokens: IndexedMap<'a, &'a str, TokenInfo<T>, TokenIndexes<'a, T>>,
-
     pub(crate) _custom_response: PhantomData<C>,
 }
 
@@ -39,7 +39,9 @@ where
         Self::new(
             "nft_info",
             "minter",
+            "medal_redeem",
             "num_tokens",
+            "num_redeemed_tokens",
             "operators",
             "tokens",
             "tokens__owner",
@@ -54,7 +56,9 @@ where
     fn new(
         contract_key: &'a str,
         minter_key: &'a str,
+        medal_redeem_key: &'a str,
         token_count_key: &'a str,
+        redeemed_token_count_key: &'a str,
         operator_key: &'a str,
         tokens_key: &'a str,
         tokens_owner_key: &'a str,
@@ -65,20 +69,51 @@ where
         Self {
             contract_info: Item::new(contract_key),
             minter: Item::new(minter_key),
+            medal_redeem: Item::new(medal_redeem_key),
             token_count: Item::new(token_count_key),
+            redeem_count: Item::new(redeemed_token_count_key),
             operators: Map::new(operator_key),
             tokens: IndexedMap::new(tokens_key, indexes),
             _custom_response: PhantomData,
         }
     }
 
+    /// Returns the MEDAL (Redeemed) contract address
+    pub fn get_medal_redeem_addr(&self, storage: &dyn Storage) -> StdResult<Addr> {
+        Ok(self.medal_redeem.load(storage)?)
+    }
+
+    /// Updates the MEDAL (Redeemed) contract address
+    pub fn update_medal_redeem_addr(
+        &self,
+        storage: &mut dyn Storage,
+        medal_redeem_addr: Addr,
+    ) -> StdResult<Addr> {
+        self.medal_redeem.save(storage, &medal_redeem_addr)?;
+        Ok(self.medal_redeem.load(storage)?)
+    }
+
+    /// Returns the current count of MEDAL Tokens
     pub fn token_count(&self, storage: &dyn Storage) -> StdResult<u64> {
         Ok(self.token_count.may_load(storage)?.unwrap_or_default())
     }
 
+    /// Increments the current count of MEDAL Tokens
     pub fn increment_tokens(&self, storage: &mut dyn Storage) -> StdResult<u64> {
         let val = self.token_count(storage)? + 1;
         self.token_count.save(storage, &val)?;
+        Ok(val)
+    }
+
+    /// Returns the current count of MEDAL Tokens that have been redeemed
+    pub fn redeemed_tokens_count(&self, storage: &dyn Storage) -> StdResult<u64> {
+        Ok(self.redeem_count.may_load(storage)?.unwrap_or_default())
+    }
+
+    /// Increments the current count of MEDAL Tokens that have been redeemed
+    pub fn increment_redeemed_tokens(&self, storage: &mut dyn Storage) -> StdResult<u64> {
+        let val = self.redeemed_tokens_count(storage)? + 1;
+        self.redeem_count.save(storage, &val)?;
         Ok(val)
     }
 }

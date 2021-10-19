@@ -23,6 +23,8 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg<T> {
+    /// Admin function to set the MEDAL (Redeem) Contract address
+    UpdateMedalRedeemAddress { medal_redeem_addr: String },
     /// Transfer is a base message to move a token to another account without triggering actions
     TransferNft { recipient: String, token_id: String },
     /// Send is a base message to transfer a token to a contract and trigger an action
@@ -51,6 +53,8 @@ pub enum ExecuteMsg<T> {
     RevokeAll { operator: String },
     /// Mint a new NFT, can only be called by the contract minter
     Mint(MintMsg<T>),
+    /// Mint a new NFT, can only be called by the contract minter
+    RedeemMedal { token_id: String },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

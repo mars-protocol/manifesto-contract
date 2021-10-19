@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
     pub medal_addr: Option<String>,
+    pub medal_redeem_addr: Option<String>,
     pub max_signees_limit: u32,
     pub admin: String,
 }
@@ -18,6 +19,12 @@ pub enum ExecuteMsg {
     UpdateAdmin {
         new_admin: String,
     },
+    UpdateMedalConfig {
+        medal_addr: String,
+    },
+    UpdateMedalRedeemConfig {
+        medal_redeem_addr: String,
+    },
     SignManifesto {
         martian_date: String,
         martian_time: String,
@@ -30,6 +37,12 @@ pub enum QueryMsg {
     Config {},
     State {},
     GetSignature { signee: String },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum MedalExecuteMsg {
+    UpdateMedalRedeemAddress { medal_redeem_addr: String },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

@@ -1,12 +1,12 @@
 use cosmwasm_std::{
-    attr, entry_point, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
-    Response, StdError, StdResult,
+    attr, entry_point, to_binary, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
+    StdError, StdResult, WasmMsg,
 };
 
 use crate::state::{Config, Signature, State, CONFIG, SIGNATURES, STATE};
 use mars_community::manifesto::{
-    option_string_to_addr, zero_address, ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg,
-    QueryMsg, SignatureResponse, StateResponse,
+    option_string_to_addr, zero_address, ConfigResponse, ExecuteMsg, InstantiateMsg,
+    MedalExecuteMsg, MigrateMsg, QueryMsg, SignatureResponse, StateResponse,
 };
 
 //----------------------------------------------------------------------------------------
@@ -16,12 +16,13 @@ use mars_community::manifesto::{
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
+    _env: Env,
+    _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> StdResult<Response> {
     let config = Config {
         medal_addr: option_string_to_addr(deps.api, msg.medal_addr, zero_address())?,
+        medal_redeem_addr: option_string_to_addr(deps.api, msg.medal_redeem_addr, zero_address())?,
         max_signees_allowed: msg.max_signees_limit,
         admin: deps.api.addr_validate(&msg.admin)?,
     };
@@ -39,12 +40,18 @@ pub fn instantiate(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, StdError> {
     match msg {
         ExecuteMsg::UpdateAdmin { new_admin } => try_update_admin(deps, info, new_admin),
+        ExecuteMsg::UpdateMedalConfig { medal_addr } => {
+            try_update_medal_config(deps, info, medal_addr)
+        }
+        ExecuteMsg::UpdateMedalRedeemConfig { medal_redeem_addr } => {
+            try_update_medal_redeem_config(deps, info, medal_redeem_addr)
+        }
         ExecuteMsg::SignManifesto {
             martian_date,
             martian_time,
@@ -93,6 +100,59 @@ pub fn try_update_admin(
     Ok(Response::new().add_attributes(vec![
         attr("action", "update_admin"),
         attr("new_admin", new_admin),
+    ]))
+}
+
+/// @dev Admin function to update MEDAL NFT Configuration
+/// @param medal_addr : New MEDAL Token Address
+pub fn try_update_medal_config(
+    deps: DepsMut,
+    info: MessageInfo,
+    medal_addr: String,
+) -> StdResult<Response> {
+    let mut config = CONFIG.load(deps.storage)?;
+
+    // Verify if called by Admin
+    if info.sender != config.admin {
+        return Err(StdError::generic_err("Unauthorized"));
+    }
+
+    // Update & Save
+    config.medal_addr = deps.api.addr_validate(&medal_addr)?;
+    CONFIG.save(deps.storage, &config)?;
+
+    Ok(Response::new().add_attributes(vec![
+        attr("action", "update_medal_config"),
+        attr("medal_addr", medal_addr),
+    ]))
+}
+
+/// @dev Admin function to update MEDAL (Redeem) NFT Configuration
+/// @param medal_redeem_addr : New MEDAL (Redeem) token address
+pub fn try_update_medal_redeem_config(
+    deps: DepsMut,
+    info: MessageInfo,
+    medal_redeem_addr: String,
+) -> StdResult<Response> {
+    let mut config = CONFIG.load(deps.storage)?;
+
+    // Verify if called by Admin
+    if info.sender != config.admin {
+        return Err(StdError::generic_err("Unauthorized"));
+    }
+
+    let cosmos_msg = build_update_medal_redeem_addr_msg(
+        config.medal_addr.to_string(),
+        medal_redeem_addr.clone(),
+    )?;
+
+    // Update & Save
+    config.medal_redeem_addr = deps.api.addr_validate(&medal_redeem_addr)?;
+    CONFIG.save(deps.storage, &config)?;
+
+    Ok(Response::new().add_message(cosmos_msg).add_attributes(vec![
+        attr("action", "update_medal_redeem_config"),
+        attr("medal_redeem_addr", medal_redeem_addr),
     ]))
 }
 
@@ -205,6 +265,20 @@ fn is_valid_date(date: &str) -> bool {
         return false;
     }
     return true;
+}
+
+/// Helper Function. Returns CosmosMsg which updates MEDAL (Redeem) address in the MEDAL Contract
+pub fn build_update_medal_redeem_addr_msg(
+    medal_addr: String,
+    medal_redeem_addr: String,
+) -> StdResult<CosmosMsg> {
+    Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: medal_addr.to_string(),
+        msg: to_binary(&MedalExecuteMsg::UpdateMedalRedeemAddress {
+            medal_redeem_addr: medal_redeem_addr,
+        })?,
+        funds: vec![],
+    }))
 }
 
 //----------------------------------------------------------------------------------------
