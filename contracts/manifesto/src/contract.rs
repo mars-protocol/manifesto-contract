@@ -3,11 +3,12 @@ use cosmwasm_std::{
     StdError, StdResult, WasmMsg,
 };
 
-use crate::state::{Config, Signature, State, CONFIG, SIGNATURES, STATE};
+use crate::state::{Config, Signature, State, CONFIG, METADATA, SIGNATURES, STATE};
 use mars_community::manifesto::{
     option_string_to_addr, zero_address, ConfigResponse, ExecuteMsg, InstantiateMsg,
-    MedalExecuteMsg, MigrateMsg, QueryMsg, SignatureResponse, StateResponse,
+    MedalExecuteMsg, MigrateMsg, MintMsg, QueryMsg, SignatureResponse, StateResponse,
 };
+use mars_community::metadata::{Metadata, Trait};
 
 //----------------------------------------------------------------------------------------
 // Entry points
@@ -28,7 +29,7 @@ pub fn instantiate(
     };
 
     let state = State {
-        signees_count: 0u32,
+        signees_count: 0u64,
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -46,9 +47,10 @@ pub fn execute(
 ) -> Result<Response, StdError> {
     match msg {
         ExecuteMsg::UpdateAdmin { new_admin } => try_update_admin(deps, info, new_admin),
-        ExecuteMsg::UpdateMedalConfig { medal_addr } => {
-            try_update_medal_config(deps, info, medal_addr)
-        }
+        ExecuteMsg::UpdateMedalConfig {
+            medal_addr,
+            metadata,
+        } => try_update_medal_config(deps, info, medal_addr, metadata),
         ExecuteMsg::UpdateMedalRedeemConfig { medal_redeem_addr } => {
             try_update_medal_redeem_config(deps, info, medal_redeem_addr)
         }
@@ -109,6 +111,7 @@ pub fn try_update_medal_config(
     deps: DepsMut,
     info: MessageInfo,
     medal_addr: String,
+    metadata: Metadata,
 ) -> StdResult<Response> {
     let mut config = CONFIG.load(deps.storage)?;
 
@@ -116,6 +119,13 @@ pub fn try_update_medal_config(
     if info.sender != config.admin {
         return Err(StdError::generic_err("Unauthorized"));
     }
+
+    let medal_metadata = MedalMetaData {
+        name_prefix: metadata.name,
+        description: metadata.description,
+        image: metadata.image,
+        token_uri: metadata.external_url,
+    };
 
     // Update & Save
     config.medal_addr = deps.api.addr_validate(&medal_addr)?;
@@ -192,20 +202,27 @@ pub fn try_sign_manifesto(
         ));
     }
 
+    let medal_mint_msg = build_medal_mint_msg(
+        deps.as_ref(),
+        config.medal_addr.to_string(),
+        state.signees_count,
+        signee.to_string(),
+        martian_date.clone(),
+        martian_time.clone(),
+    )?;
+
     state.signees_count += 1;
     let signature_ = Signature {
         signee: signee.clone(),
-        martian_date: martian_date,
-        martian_time: martian_time,
+        martian_date: martian_date.clone(),
+        martian_time: martian_time.clone(),
     };
-
-    // let medal_mint_msg = build_medal_mint_msg();
 
     STATE.save(deps.storage, &state)?;
     SIGNATURES.save(deps.storage, signee.to_string().as_bytes(), &signature_)?;
 
     Ok(Response::new()
-        // .add_message(medal_mint_msg)
+        .add_message(medal_mint_msg)
         .add_attributes(vec![
             attr("action", "sign_manifesto"),
             attr("signee", signee),
@@ -277,6 +294,60 @@ pub fn build_update_medal_redeem_addr_msg(
         msg: to_binary(&MedalExecuteMsg::UpdateMedalRedeemAddress {
             medal_redeem_addr: medal_redeem_addr,
         })?,
+        funds: vec![],
+    }))
+}
+
+/// Helper Function. Returns CosmosMsg which updates MEDAL (Redeem) address in the MEDAL Contract
+pub fn build_medal_mint_msg(
+    deps: Deps,
+    medal_addr: String,
+    token_id: u64,
+    user_addr: String,
+    martian_date: String,
+    martian_time: String,
+) -> StdResult<CosmosMsg> {
+    let metadata = METADATA.load(deps.storage, medal_addr.to_string().as_bytes())?;
+
+    let mut attributes_vec = vec![];
+    let date_attribute = Trait {
+        display_type: None,
+        trait_type: "martian_date".to_string(),
+        value: martian_date,
+    };
+    attributes_vec.push(date_attribute);
+
+    let time_attribute = Trait {
+        display_type: None,
+        trait_type: "martian_time".to_string(),
+        value: martian_time,
+    };
+    attributes_vec.push(time_attribute);
+
+    let extension_ = Metadata {
+        image: Some(metadata.image.clone()),
+        image_data: None,
+        external_url: None,
+        description: Some(metadata.description.clone()),
+        name: Some(metadata.name_prefix.clone() + &token_id.to_string()),
+        attributes: Some(attributes_vec),
+        background_color: None,
+        animation_url: None,
+        youtube_url: None,
+    };
+
+    let mint_msg = MintMsg {
+        token_id: token_id.to_string(),
+        owner: user_addr,
+        name: metadata.name_prefix + &token_id.to_string(),
+        description: Some(metadata.description),
+        image: Some(metadata.image),
+        extension: extension_,
+    };
+
+    Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: medal_addr.to_string(),
+        msg: to_binary(&MedalExecuteMsg::Mint(mint_msg))?,
         funds: vec![],
     }))
 }

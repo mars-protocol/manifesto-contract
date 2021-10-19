@@ -177,21 +177,21 @@ where
         // MEDAL (Redeem) ID ::: To Be Minted
         let redeem_medal_id = self.redeemed_tokens_count(deps.storage)?;
 
-        let mint_redeemed_medal_msg = MintMsg {
-            token_id: redeem_medal_id.to_string(),
-            owner: user_addr.to_string(),
-            name: "R-MEDAL".to_string(),
-            description: None,
-            image: None,
-            extension: None,
-        };
+        // let mint_redeemed_medal_msg = MintMsg {
+        //     token_id: redeem_medal_id.to_string(),
+        //     owner: user_addr.to_string(),
+        //     name: "R-MEDAL".to_string(),
+        //     description: None,
+        //     image: None,
+        //     extension: None,
+        // };
 
         // COSMOS MSG :: TO MINT THE MEDAL (REDEEM) TOKEN
-        let mint_redeemed_medal_msg = CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: medal_redeem_addr.to_string(),
-            msg: to_binary(&ExecuteMsg::Mint(mint_redeemed_medal_msg))?,
-            funds: vec![],
-        });
+        // let mint_redeemed_medal_msg = CosmosMsg::Wasm(WasmMsg::Execute {
+        //     contract_addr: medal_redeem_addr.to_string(),
+        //     msg: to_binary(&ExecuteMsg::Mint(mint_redeemed_medal_msg))?,
+        //     funds: vec![],
+        // });
 
         // Increment Redeemed Medals Count
         self.increment_redeemed_tokens(deps.storage)?;

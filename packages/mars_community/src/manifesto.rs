@@ -1,3 +1,4 @@
+use crate::metadata::Metadata;
 use cosmwasm_std::{Addr, Api, StdResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -6,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct InstantiateMsg {
     pub medal_addr: Option<String>,
     pub medal_redeem_addr: Option<String>,
-    pub max_signees_limit: u32,
+    pub max_signees_limit: u64,
     pub admin: String,
 }
 
@@ -21,6 +22,7 @@ pub enum ExecuteMsg {
     },
     UpdateMedalConfig {
         medal_addr: String,
+        metadata: Metadata,
     },
     UpdateMedalRedeemConfig {
         medal_redeem_addr: String,
@@ -43,18 +45,35 @@ pub enum QueryMsg {
 #[serde(rename_all = "snake_case")]
 pub enum MedalExecuteMsg {
     UpdateMedalRedeemAddress { medal_redeem_addr: String },
+    Mint(MintMsg),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MintMsg {
+    /// Unique ID of the NFT
+    pub token_id: String,
+    /// The owner of the newly minter NFT
+    pub owner: String,
+    /// Identifies the asset to which this NFT represents
+    pub name: String,
+    /// Describes the asset to which this NFT represents (may be empty)
+    pub description: Option<String>,
+    /// A URI pointing to an image representing the asset
+    pub image: Option<String>,
+    /// Any custom extension used by this contract
+    pub extension: Metadata,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ConfigResponse {
     pub medal_addr: Addr,
-    pub max_signees_allowed: u32,
+    pub max_signees_allowed: u64,
     pub admin: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct StateResponse {
-    pub signee_count: u32,
+    pub signee_count: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

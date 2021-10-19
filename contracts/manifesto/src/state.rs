@@ -6,19 +6,28 @@ use cw_storage_plus::{Item, Map};
 
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const STATE: Item<State> = Item::new("state");
+pub const METADATA: Map<&[u8], MedalMetaData> = Map::new("metadata");
 pub const SIGNATURES: Map<&[u8], Signature> = Map::new("signatures");
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
     pub medal_addr: Addr,
     pub medal_redeem_addr: Addr,
-    pub max_signees_allowed: u32,
+    pub max_signees_allowed: u64,
     pub admin: Addr,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct State {
-    pub signees_count: u32,
+    pub signees_count: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MedalMetaData {
+    pub name_prefix: String,
+    pub description: String,
+    pub image: String,
+    pub token_uri: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
