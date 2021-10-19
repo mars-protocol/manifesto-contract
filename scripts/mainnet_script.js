@@ -43,6 +43,22 @@ async function main() {
 
     console.log('MEDAL ADDRESS : ' + medal_address )
 
+    // #################################################    
+    // #########     MEDAL (Redeemed) :::  DEPLOYMENT     #########
+    // #################################################    
+
+    let medal_redeemed_id = await uploadContract(terra, wallet, '../manifesto/artifacts/manifesto_contract.wasm');
+    console.log('MEDAL CONTRACT ID : ' + medal_id )
+    let medal_redeemed_init_msg = { 
+      name: "MEDAL",
+      symbol: "MEDAL",
+      minter: medal_address
+     };
+    let medal_redeemed_address = await instantiateContract(terra, wallet, medal_redeemed_id, medal_redeemed_init_msg );
+
+    console.log('MEDAL ADDRESS : ' + medal_redeemed_address )
+
+
 
     // #################################################    
     // #########     MANIFESTO :::  UPDATE MEDAL RELATED CONFIG (Address, Metadata)     #########
