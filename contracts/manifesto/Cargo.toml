@@ -1,7 +1,7 @@
 [package]
-name = "manifesto-contract"
-version = "0.1.0"
-authors = ["Alien hunter no. 42 <84127070+alienHunterOnMars@users.noreply.github.com>"]
+name = "manifesto"
+version = "1.0.0"
+authors = ["_astromartian"]
 edition = "2018"
 
 exclude = [
@@ -31,6 +31,7 @@ overflow-checks = true
 backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
+mars-community = { path = "../../packages/mars_community" }
 cosmwasm-std = "0.16.0"
 cosmwasm-storage = "0.16.0"
 cw-storage-plus = "0.8.0"
