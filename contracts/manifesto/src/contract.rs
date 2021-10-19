@@ -3,7 +3,7 @@ use cosmwasm_std::{
     StdError, StdResult, WasmMsg,
 };
 
-use crate::state::{Config, Signature, State, CONFIG, METADATA, SIGNATURES, STATE};
+use crate::state::{Config, MedalMetaData, Signature, State, CONFIG, METADATA, SIGNATURES, STATE};
 use mars_community::manifesto::{
     option_string_to_addr, zero_address, ConfigResponse, ExecuteMsg, InstantiateMsg,
     MedalExecuteMsg, MigrateMsg, MintMsg, QueryMsg, SignatureResponse, StateResponse,
@@ -121,15 +121,20 @@ pub fn try_update_medal_config(
     }
 
     let medal_metadata = MedalMetaData {
-        name_prefix: metadata.name,
-        description: metadata.description,
-        image: metadata.image,
-        token_uri: metadata.external_url,
+        name_prefix: metadata.name.unwrap_or("".to_string()),
+        description: metadata.description.unwrap_or("".to_string()),
+        image: metadata.image.unwrap_or("".to_string()),
+        token_uri: metadata.external_url.unwrap_or("".to_string()),
     };
 
     // Update & Save
     config.medal_addr = deps.api.addr_validate(&medal_addr)?;
     CONFIG.save(deps.storage, &config)?;
+    METADATA.save(
+        deps.storage,
+        medal_addr.to_string().as_bytes(),
+        &medal_metadata,
+    )?;
 
     Ok(Response::new().add_attributes(vec![
         attr("action", "update_medal_config"),

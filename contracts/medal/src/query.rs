@@ -156,6 +156,12 @@ where
         })
     }
 
+    // {"minter":{}}
+    // {"contract_info":{}}
+    // {"num_tokens":{}}
+    // {"nft_info":{ "token_id":"185347816353321570128541574004098209206"  }}
+    // {"tokens":{ "owner":"terra1lnftl96z96cyqk0zd5tkwfgk4ttrdl5mf63gnp"  }}
+
     pub fn query(&self, deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         match msg {
             QueryMsg::Minter {} => to_binary(&self.minter(deps)?),
