@@ -12,6 +12,7 @@ pub const SIGNATURES: Map<&[u8], Signature> = Map::new("signatures");
 pub struct Config {
     pub medal_addr: Addr,
     pub max_signees_allowed: u32,
+    pub admin: Addr,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

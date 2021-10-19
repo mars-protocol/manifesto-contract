@@ -5,8 +5,8 @@ use cosmwasm_std::{
 
 use crate::state::{Config, Signature, State, CONFIG, SIGNATURES, STATE};
 use mars_community::manifesto::{
-    ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, SignatureResponse,
-    StateResponse,
+    option_string_to_addr, zero_address, ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg,
+    QueryMsg, SignatureResponse, StateResponse,
 };
 
 //----------------------------------------------------------------------------------------
@@ -21,8 +21,9 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> StdResult<Response> {
     let config = Config {
-        medal_addr: deps.api.addr_validate(&msg.medal_addr)?,
+        medal_addr: option_string_to_addr(deps.api, msg.medal_addr, zero_address())?,
         max_signees_allowed: msg.max_signees_limit,
+        admin: deps.api.addr_validate(&msg.admin)?,
     };
 
     let state = State {
@@ -43,6 +44,7 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, StdError> {
     match msg {
+        ExecuteMsg::UpdateAdmin { new_admin } => try_update_admin(deps, info, new_admin),
         ExecuteMsg::SignManifesto {
             martian_date,
             martian_time,
@@ -70,6 +72,29 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 //----------------------------------------------------------------------------------------
 // Handle functions
 //----------------------------------------------------------------------------------------
+
+/// @dev Admin function to update the admin
+/// @param new_admin : New admin
+pub fn try_update_admin(
+    deps: DepsMut,
+    info: MessageInfo,
+    new_admin: String,
+) -> StdResult<Response> {
+    let mut config = CONFIG.load(deps.storage)?;
+
+    // Verify if called by Admin
+    if info.sender != config.admin {
+        return Err(StdError::generic_err("Unauthorized"));
+    }
+
+    config.admin = info.sender;
+    CONFIG.save(deps.storage, &config)?;
+
+    Ok(Response::new().add_attributes(vec![
+        attr("action", "update_admin"),
+        attr("new_admin", new_admin),
+    ]))
+}
 
 /// @dev Stores signature details provided by the Signee. https://manifesto.marsprotocol.io/ : Web app to facilitate signing with Martian Date and Time
 /// @param martian_date : An equivalent martian date as according to th Darian Calender
@@ -100,7 +125,7 @@ pub fn try_sign_manifesto(
     }
 
     // Make sure the account has not already signed the Manifesto
-    let signature_ = SIGNATURES.load(deps.storage, signee.to_string().as_bytes())?;
+    let signature_ = SIGNATURES.load(deps.storage, signee.clone().to_string().as_bytes())?;
     if signature_.signee.to_string() == signee {
         return Err(StdError::generic_err(
             "User has already signed the Manifesto",
@@ -109,18 +134,18 @@ pub fn try_sign_manifesto(
 
     state.signees_count += 1;
     let signature_ = Signature {
-        signee: signee,
+        signee: signee.clone(),
         martian_date: martian_date,
         martian_time: martian_time,
     };
 
     // let medal_mint_msg = build_medal_mint_msg();
 
-    STATE.save(deps.storage, &state);
-    SIGNATURES.save(deps.storage, signee.to_string().as_bytes(), &signature_);
+    STATE.save(deps.storage, &state)?;
+    SIGNATURES.save(deps.storage, signee.to_string().as_bytes(), &signature_)?;
 
     Ok(Response::new()
-        .add_message(medal_mint_msg)
+        // .add_message(medal_mint_msg)
         .add_attributes(vec![
             attr("action", "sign_manifesto"),
             attr("signee", signee),
@@ -139,6 +164,7 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     Ok(ConfigResponse {
         medal_addr: config.medal_addr,
         max_signees_allowed: config.max_signees_allowed,
+        admin: config.admin.to_string(),
     })
 }
 

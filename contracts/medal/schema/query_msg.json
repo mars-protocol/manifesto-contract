@@ -11,26 +11,8 @@
         "get_count": {
           "type": "object"
         }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "is_signee"
-      ],
-      "properties": {
-        "is_signee": {
-          "type": "object",
-          "required": [
-            "address"
-          ],
-          "properties": {
-            "address": {
-              "type": "string"
-            }
-          }
-        }
-      }
+      },
+      "additionalProperties": false
     }
   ]
 }

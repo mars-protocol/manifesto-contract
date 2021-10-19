@@ -8,7 +8,7 @@ async function main() {
     // TERRA TEST-NET
     let terra = new LCDClient({
       URL: 'https://fcd.terra.dev',
-      chainID: 'columbus-4',
+      chainID: 'columbus-5',
     });
 
     // For testing. Never commit the memo 
@@ -16,14 +16,53 @@ async function main() {
     let wallet = terra.wallet(mk);   
     console.log("Wallet Address : " + wallet.key.accAddress )
   
-    // MANIFESTO CONTRACT DEPLOYMENT
+
+    // #################################################    
+    // #########    MANIFESTO ::: DEPLOYMENT   #########
+    // #################################################    
     let manifesto_id = await uploadContract(terra, wallet, '../manifesto/artifacts/manifesto_contract.wasm');
     console.log('MANIFESTO CONTRACT ID : ' + manifesto_id )
-
-    let manifesto_init_msg = { }
+    let manifesto_init_msg = { 
+      medal_addr: null,
+      max_signees_limit: 1280,
+     }
     let manifesto_address = await instantiateContract(terra, wallet, manifesto_id, manifesto_init_msg );
-
     console.log('MANIFESTO ADDRESS : ' + manifesto_address )
+
+    // #################################################    
+    // #########     MEDAL :::  DEPLOYMENT     #########
+    // #################################################    
+    let medal_id = await uploadContract(terra, wallet, '../manifesto/artifacts/manifesto_contract.wasm');
+    console.log('MEDAL CONTRACT ID : ' + medal_id )
+    let medal_init_msg = { 
+      name: "MEDAL",
+      symbol: "MEDAL",
+      minter: manifesto_address
+     };
+    let medal_address = await instantiateContract(terra, wallet, medal_id, medal_init_msg );
+
+    console.log('MEDAL ADDRESS : ' + medal_address )
+
+
+    // #################################################    
+    // #########     MANIFESTO :::  UPDATE MEDAL RELATED CONFIG (Address, Metadata)     #########
+    // #################################################    
+
+
+    // UPDATE MANIFESTO CONFIG
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // SIGN MANIFESTO TX
     let response = await sign_manifesto(terra, wallet, manifesto_address, "20 Leo, 11 BML", "24:59:59 MTC"); 
