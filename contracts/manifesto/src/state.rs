@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::Addr;
 use cw_storage_plus::{Item, Map};
 
+use mars_community::manifesto::MedalMetaData;
+
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const STATE: Item<State> = Item::new("state");
 pub const METADATA: Map<&[u8], MedalMetaData> = Map::new("metadata");
@@ -20,14 +22,6 @@ pub struct Config {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct State {
     pub signees_count: u64,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct MedalMetaData {
-    pub name_prefix: String,
-    pub description: String,
-    pub image: String,
-    pub token_uri: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

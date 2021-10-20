@@ -3,10 +3,11 @@ use cosmwasm_std::{
     StdError, StdResult, WasmMsg,
 };
 
-use crate::state::{Config, MedalMetaData, Signature, State, CONFIG, METADATA, SIGNATURES, STATE};
+use crate::state::{Config, Signature, State, CONFIG, METADATA, SIGNATURES, STATE};
 use mars_community::manifesto::{
     option_string_to_addr, zero_address, ConfigResponse, ExecuteMsg, InstantiateMsg,
-    MedalExecuteMsg, MigrateMsg, MintMsg, QueryMsg, SignatureResponse, StateResponse,
+    MedalExecuteMsg, MedalMetaData, MigrateMsg, MintMsg, QueryMsg, SignatureResponse,
+    StateResponse,
 };
 use mars_community::metadata::{Metadata, Trait};
 
@@ -51,9 +52,10 @@ pub fn execute(
             medal_addr,
             metadata,
         } => try_update_medal_config(deps, info, medal_addr, metadata),
-        ExecuteMsg::UpdateMedalRedeemConfig { medal_redeem_addr } => {
-            try_update_medal_redeem_config(deps, info, medal_redeem_addr)
-        }
+        ExecuteMsg::UpdateMedalRedeemConfig {
+            medal_redeem_addr,
+            metadata,
+        } => try_update_medal_redeem_config(deps, info, medal_redeem_addr, metadata),
         ExecuteMsg::SignManifesto {
             martian_date,
             martian_time,
@@ -148,6 +150,7 @@ pub fn try_update_medal_redeem_config(
     deps: DepsMut,
     info: MessageInfo,
     medal_redeem_addr: String,
+    metadata: MedalMetaData,
 ) -> StdResult<Response> {
     let mut config = CONFIG.load(deps.storage)?;
 
@@ -159,6 +162,7 @@ pub fn try_update_medal_redeem_config(
     let cosmos_msg = build_update_medal_redeem_addr_msg(
         config.medal_addr.to_string(),
         medal_redeem_addr.clone(),
+        metadata,
     )?;
 
     // Update & Save
@@ -194,13 +198,15 @@ pub fn try_sign_manifesto(
         return Err(StdError::generic_err(format!("Invalid Martian Date")));
     }
 
-    // Verify if Date is in the valid format
+    // Verify if signee limit is not reached yet
     if state.signees_count >= config.max_signees_allowed {
         return Err(StdError::generic_err(format!("Max signee limit reached")));
     }
 
     // Make sure the account has not already signed the Manifesto
-    let signature_ = SIGNATURES.load(deps.storage, signee.clone().to_string().as_bytes())?;
+    let signature_ = SIGNATURES
+        .may_load(deps.storage, signee.clone().to_string().as_bytes())?
+        .unwrap_or_default();
     if signature_.signee.to_string() == signee {
         return Err(StdError::generic_err(
             "User has already signed the Manifesto",
@@ -293,11 +299,13 @@ fn is_valid_date(date: &str) -> bool {
 pub fn build_update_medal_redeem_addr_msg(
     medal_addr: String,
     medal_redeem_addr: String,
+    metadata: MedalMetaData,
 ) -> StdResult<CosmosMsg> {
     Ok(CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: medal_addr.to_string(),
         msg: to_binary(&MedalExecuteMsg::UpdateMedalRedeemAddress {
             medal_redeem_addr: medal_redeem_addr,
+            metadata: metadata,
         })?,
         funds: vec![],
     }))
@@ -334,7 +342,7 @@ pub fn build_medal_mint_msg(
         image_data: None,
         external_url: None,
         description: Some(metadata.description.clone()),
-        name: Some(metadata.name_prefix.clone() + &token_id.to_string()),
+        name: Some(metadata.name_prefix.clone() + &" #".to_string() + &token_id.to_string()),
         attributes: Some(attributes_vec),
         background_color: None,
         animation_url: None,
@@ -344,9 +352,9 @@ pub fn build_medal_mint_msg(
     let mint_msg = MintMsg {
         token_id: token_id.to_string(),
         owner: user_addr,
-        name: metadata.name_prefix + &token_id.to_string(),
+        name: metadata.name_prefix + &" #".to_string() + &token_id.to_string(),
         description: Some(metadata.description),
-        image: Some(metadata.image),
+        image: Some(metadata.token_uri),
         extension: extension_,
     };
 

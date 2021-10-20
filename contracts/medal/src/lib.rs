@@ -9,9 +9,10 @@ pub use crate::error::ContractError;
 pub use crate::msg::{ExecuteMsg, InstantiateMsg, MintMsg, MinterResponse, QueryMsg};
 pub use crate::state::Cw721Contract;
 use cosmwasm_std::Empty;
+use mars_community::metadata::Metadata;
 
 // This is a simple type to let us handle empty extensions
-pub type Extension = Option<Empty>;
+pub type Extension = Option<Metadata>;
 
 #[cfg(not(feature = "library"))]
 pub mod entry {

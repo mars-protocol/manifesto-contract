@@ -1,39 +1,21 @@
 {
-    "name": "deployment-script",
-    "version": "0.1.0",
-    "private": true,
+    "name": "scripts",
+    "version": "1.0.0",
+    "main": "index.js",
+    "license": "MIT",
     "type": "module",
     "dependencies": {
-        "@terra-money/terra.js": "^1.7.0",
-        "chalk": "^4.1.1",
-        "core-js": "^3.6.5",
-        "dotenv": "^10.0.0",
-        "esm": "^3.2.25",
-        "esm-ts-node": "^1.0.7",
-        "firebase": "^8.6.4",
-        "yargs": "^17.0.1",
-        "yargs-parser": "^20.2.9"
+        "@terra-money/terra.js": "^2.0.0-beta.16",
+        "bignumber.js": "^9.0.1",
+        "chai": "^4.3.4",
+        "dotenv": "^8.2.0"
     },
-    "eslintConfig": {
-        "root": true,
-        "env": {
-            "node": true
-        },
-        "extends": [
-            "plugin:vue/essential",
-            "eslint:recommended"
-        ],
-        "parserOptions": {
-            "parser": "babel-eslint"
-        },
-        "rules": {
-            "no-unused-vars": "off",
-            "vue/no-unused-components": "off"
-        }
-    },
-    "browserslist": [
-        "> 1%",
-        "last 2 versions",
-        "not dead"
-    ]
+    "devDependencies": {
+        "@types/chai": "^4.2.21",
+        "@types/chalk": "^2.2.0",
+        "@types/yargs": "^17.0.2",
+        "eslint": "^7.24.0",
+        "ts-node": "^10.1.0",
+        "typescript": "^4.3.5"
+    }
 }

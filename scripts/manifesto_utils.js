@@ -1,4 +1,4 @@
-import { executeContract, queryContract} from "./helpers.mjs";
+import { executeContract, queryContract} from "./helpers.ts";
 
 
   export async function sign_manifesto(terra, wallet, manifesto_address, martian_date, martian_time) {
@@ -8,7 +8,7 @@ import { executeContract, queryContract} from "./helpers.mjs";
   }
 
   export async function get_signeesCount(terra, manifesto_address) {
-    let query = { "get_count": {} };
+    let query = { "state": {} };
     let resp = await queryContract(terra, manifesto_address, query ); 
     return resp;
   }

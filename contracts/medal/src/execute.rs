@@ -10,7 +10,8 @@ use cw721::{ContractInfoResponse, CustomMsg, Cw721Execute, Cw721ReceiveMsg, Expi
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MintMsg};
-use crate::state::{Approval, Cw721Contract, TokenInfo};
+use crate::state::{Approval, Cw721Contract, MedalMetaData, TokenInfo};
+use mars_community::metadata::{Metadata, Trait};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:cw721-base";
@@ -49,9 +50,10 @@ where
     ) -> Result<Response<C>, ContractError> {
         match msg {
             ExecuteMsg::Mint(msg) => self.mint(deps, env, info, msg),
-            ExecuteMsg::UpdateMedalRedeemAddress { medal_redeem_addr } => {
-                self.update_medal_redeem_address(deps, env, info, medal_redeem_addr)
-            }
+            ExecuteMsg::UpdateMedalRedeemConfig {
+                medal_redeem_addr,
+                metadata,
+            } => self.update_medal_redeem_config(deps, env, info, medal_redeem_addr, metadata),
             ExecuteMsg::Approve {
                 spender,
                 token_id,
@@ -84,12 +86,13 @@ where
     T: Serialize + DeserializeOwned + Clone,
     C: CustomMsg,
 {
-    pub fn update_medal_redeem_address(
+    pub fn update_medal_redeem_config(
         &self,
         deps: DepsMut,
         _env: Env,
         info: MessageInfo,
         medal_redeem_addr: String,
+        metadata: MedalMetaData,
     ) -> Result<Response<C>, ContractError> {
         let minter = self.minter.load(deps.storage)?;
 
@@ -100,8 +103,11 @@ where
         // Updates the MEDAL (Redeemed) contract address
         self.update_medal_redeem_addr(deps.storage, deps.api.addr_validate(&medal_redeem_addr)?)?;
 
+        // Updates the MEDAL (Redeemed) Metadata
+        self.update_medal_redeem_info(deps.storage, metadata)?;
+
         Ok(Response::new()
-            .add_attribute("action", "update_medal_redeem_address")
+            .add_attribute("action", "update_medal_redeem_config")
             .add_attribute("medal_redeem_addr", medal_redeem_addr))
     }
 }
@@ -168,39 +174,76 @@ where
         // ensure we have permissions
         self.check_can_send(deps.as_ref(), &_env, &info, &token)?;
 
-        // Remove (Burn) the MEDAL Token
-        self.tokens.remove(deps.storage, &token_id)?;
-
         // MEDAL (Redeem) Address
         let medal_redeem_addr = self.get_medal_redeem_addr(deps.storage)?;
+
+        // MEDAL (Redeem) Address
+        let medal_redeem_metadata = self.get_medal_redeem_info(deps.storage)?;
 
         // MEDAL (Redeem) ID ::: To Be Minted
         let redeem_medal_id = self.redeemed_tokens_count(deps.storage)?;
 
-        // let mint_redeemed_medal_msg = MintMsg {
-        //     token_id: redeem_medal_id.to_string(),
-        //     owner: user_addr.to_string(),
-        //     name: "R-MEDAL".to_string(),
-        //     description: None,
-        //     image: None,
-        //     extension: None,
-        // };
+        let mut attributes_vec = vec![];
+        let date_attribute = Trait {
+            display_type: None,
+            trait_type: "MEDAL".to_string(),
+            value: token_id.clone(),
+        };
+        attributes_vec.push(date_attribute);
+
+        let time_attribute = Trait {
+            display_type: None,
+            trait_type: "timestamp".to_string(),
+            value: _env.block.time.seconds().to_string(),
+        };
+        attributes_vec.push(time_attribute);
+
+        let extension_ = Metadata {
+            image: Some(medal_redeem_metadata.image.clone()),
+            image_data: None,
+            external_url: None,
+            description: Some(medal_redeem_metadata.description.clone()),
+            name: Some(
+                medal_redeem_metadata.name_prefix.clone()
+                    + &" #".to_string()
+                    + &redeem_medal_id.to_string(),
+            ),
+            attributes: Some(attributes_vec),
+            background_color: None,
+            animation_url: None,
+            youtube_url: None,
+        };
+
+        let mint_msg = MintMsg {
+            token_id: redeem_medal_id.to_string(),
+            owner: user_addr.to_string(),
+            name: medal_redeem_metadata.name_prefix
+                + &" #".to_string()
+                + &redeem_medal_id.to_string(),
+            description: Some(medal_redeem_metadata.description),
+            image: Some(medal_redeem_metadata.token_uri),
+            extension: extension_,
+        };
 
         // COSMOS MSG :: TO MINT THE MEDAL (REDEEM) TOKEN
-        // let mint_redeemed_medal_msg = CosmosMsg::Wasm(WasmMsg::Execute {
-        //     contract_addr: medal_redeem_addr.to_string(),
-        //     msg: to_binary(&ExecuteMsg::Mint(mint_redeemed_medal_msg))?,
-        //     funds: vec![],
-        // });
+        let mint_redeemed_medal_msg = CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: medal_redeem_addr.to_string(),
+            msg: to_binary(&ExecuteMsg::Mint(mint_msg))?,
+            funds: vec![],
+        });
+
+        // Remove (Burn) the MEDAL Token
+        self.tokens.remove(deps.storage, &token_id)?;
 
         // Increment Redeemed Medals Count
         self.increment_redeemed_tokens(deps.storage)?;
 
         Ok(Response::new()
+            .add_message(mint_redeemed_medal_msg)
             .add_attribute("action", "redeem")
             .add_attribute("redeemer", user_addr)
-            .add_attribute("token_id", token_id))
-        // }
+            .add_attribute("medal_id", token_id)
+            .add_attribute("medal_redeemed_id", redeem_medal_id.to_string()))
     }
 }
 

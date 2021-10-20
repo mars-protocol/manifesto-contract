@@ -26,6 +26,7 @@ pub enum ExecuteMsg {
     },
     UpdateMedalRedeemConfig {
         medal_redeem_addr: String,
+        metadata: MedalMetaData,
     },
     SignManifesto {
         martian_date: String,
@@ -44,7 +45,10 @@ pub enum QueryMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum MedalExecuteMsg {
-    UpdateMedalRedeemAddress { medal_redeem_addr: String },
+    UpdateMedalRedeemAddress {
+        medal_redeem_addr: String,
+        metadata: MedalMetaData,
+    },
     Mint(MintMsg),
 }
 
@@ -103,4 +107,12 @@ pub fn option_string_to_addr(
 
 pub fn zero_address() -> Addr {
     Addr::unchecked("")
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MedalMetaData {
+    pub name_prefix: String,
+    pub description: String,
+    pub image: String,
+    pub token_uri: String,
 }

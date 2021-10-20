@@ -15,6 +15,7 @@ where
     pub contract_info: Item<'a, ContractInfoResponse>,
     pub minter: Item<'a, Addr>,
     pub medal_redeem: Item<'a, Addr>,
+    pub medal_redeem_info: Item<'a, MedalMetaData>,
     pub token_count: Item<'a, u64>,
     pub redeem_count: Item<'a, u64>,
     /// Stored as (granter, operator) giving operator full control over granter's account
@@ -40,6 +41,7 @@ where
             "nft_info",
             "minter",
             "medal_redeem",
+            "medal_redeem_info",
             "num_tokens",
             "num_redeemed_tokens",
             "operators",
@@ -57,6 +59,7 @@ where
         contract_key: &'a str,
         minter_key: &'a str,
         medal_redeem_key: &'a str,
+        medal_redeem_info_key: &'a str,
         token_count_key: &'a str,
         redeemed_token_count_key: &'a str,
         operator_key: &'a str,
@@ -70,6 +73,7 @@ where
             contract_info: Item::new(contract_key),
             minter: Item::new(minter_key),
             medal_redeem: Item::new(medal_redeem_key),
+            medal_redeem_info: Item::new(medal_redeem_info_key),
             token_count: Item::new(token_count_key),
             redeem_count: Item::new(redeemed_token_count_key),
             operators: Map::new(operator_key),
@@ -91,6 +95,21 @@ where
     ) -> StdResult<Addr> {
         self.medal_redeem.save(storage, &medal_redeem_addr)?;
         Ok(self.medal_redeem.load(storage)?)
+    }
+
+    /// Returns the MEDAL (Redeemed) Metadata
+    pub fn get_medal_redeem_info(&self, storage: &dyn Storage) -> StdResult<MedalMetaData> {
+        Ok(self.medal_redeem_info.load(storage)?)
+    }
+
+    /// Updates the MEDAL (Redeemed) Metadata
+    pub fn update_medal_redeem_info(
+        &self,
+        storage: &mut dyn Storage,
+        medal_redeem_info: MedalMetaData,
+    ) -> StdResult<MedalMetaData> {
+        self.medal_redeem_info.save(storage, &medal_redeem_info)?;
+        Ok(self.medal_redeem_info.load(storage)?)
     }
 
     /// Returns the current count of MEDAL Tokens
@@ -116,6 +135,14 @@ where
         self.redeem_count.save(storage, &val)?;
         Ok(val)
     }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MedalMetaData {
+    pub name_prefix: String,
+    pub description: String,
+    pub image: String,
+    pub token_uri: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

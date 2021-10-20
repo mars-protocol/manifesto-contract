@@ -1,6 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::state::MedalMetaData;
 use cosmwasm_std::Binary;
 use cw721::Expiration;
 
@@ -24,7 +25,10 @@ pub struct InstantiateMsg {
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg<T> {
     /// Admin function to set the MEDAL (Redeem) Contract address
-    UpdateMedalRedeemAddress { medal_redeem_addr: String },
+    UpdateMedalRedeemConfig {
+        medal_redeem_addr: String,
+        metadata: MedalMetaData,
+    },
     /// Transfer is a base message to move a token to another account without triggering actions
     TransferNft { recipient: String, token_id: String },
     /// Send is a base message to transfer a token to a contract and trigger an action
