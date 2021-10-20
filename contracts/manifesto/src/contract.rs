@@ -303,7 +303,7 @@ pub fn build_update_medal_redeem_addr_msg(
 ) -> StdResult<CosmosMsg> {
     Ok(CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: medal_addr.to_string(),
-        msg: to_binary(&MedalExecuteMsg::UpdateMedalRedeemAddress {
+        msg: to_binary(&MedalExecuteMsg::UpdateMedalRedeemConfig {
             medal_redeem_addr: medal_redeem_addr,
             metadata: metadata,
         })?,

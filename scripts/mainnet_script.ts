@@ -7,7 +7,8 @@ import {
   instantiateContract,
   uploadContract
 } from "./helpers.js"
-// import {sign_manifesto, get_signeesCount, isSignee, get_signature} from "./manifesto_utils.js";
+import {manifesto_medal_config, manifesto_medal_redeem_config, sign_manifesto, get_config, get_state, get_signature} from "./manifesto_utils.js";
+import {redeem_medal} from "./medal_utils.js";
 import { LCDClient } from "@terra-money/terra.js"
 
 
@@ -34,46 +35,46 @@ async function main() {
     // #########    MANIFESTO ::: DEPLOYMENT   #########
     // #################################################    
 
-    // let manifesto_id = await uploadContract(terra, deployer, '../artifacts/manifesto.wasm');
-    // console.log('MANIFESTO CONTRACT ID : ' + manifesto_id )
+    let manifesto_id = await uploadContract(terra, deployer, '../artifacts/manifesto.wasm');
+    console.log('MANIFESTO CONTRACT ID : ' + manifesto_id )
     let manifesto_init_msg = { 
       medal_addr: null,
       medal_redeem_addr: null,
       max_signees_limit: 1280,
       admin: deployer.key.accAddress
      }
-    // let manifesto_address = await instantiateContract(terra, deployer, manifesto_id, manifesto_init_msg );
-    let manifesto_address = "terra1m0uhvmfkcwktvllwm26895lqxeg0g3pujd7dug";
+    let manifesto_address = await instantiateContract(terra, deployer, manifesto_id, manifesto_init_msg );
+    // let manifesto_address = "terra1m0uhvmfkcwktvllwm26895lqxeg0g3pujd7dug";
     console.log('MANIFESTO ADDRESS : ' + manifesto_address )
 
     // #################################################    
     // #########     MEDAL :::  DEPLOYMENT     #########
     // #################################################    
 
-    // let medal_id = await uploadContract(terra, deployer, '../artifacts/medal.wasm');
-    // console.log('MEDAL CONTRACT ID : ' + medal_id )
+    let medal_id = await uploadContract(terra, deployer, '../artifacts/medal.wasm');
+    console.log('MEDAL CONTRACT ID : ' + medal_id )
     let medal_init_msg = { 
       name: "MEDAL",
       symbol: "MEDAL",
       minter: manifesto_address
      };
-    // let medal_address = await instantiateContract(terra, deployer, medal_id, medal_init_msg );
-    let medal_address = "terra1xymzjs0tssgrjqjyr37864pdny7x8qw2nng6ht";
+    let medal_address = await instantiateContract(terra, deployer, medal_id, medal_init_msg );
+    // let medal_address = "terra1xymzjs0tssgrjqjyr37864pdny7x8qw2nng6ht";
     console.log('MEDAL ADDRESS : ' + medal_address )
 
-    // #################################################    
+    // ############################################################    
     // #########     MEDAL (Redeemed) :::  DEPLOYMENT     #########
-    // #################################################    
+    // ############################################################
 
-    // let medal_redeemed_id = await uploadContract(terra, deployer, '../artifacts/medal_redeemed.wasm');
-    // console.log('MEDAL (REDEEM) CONTRACT ID : ' + medal_id )
+    let medal_redeemed_id = await uploadContract(terra, deployer, '../artifacts/medal_redeemed.wasm');
+    console.log('MEDAL (REDEEM) CONTRACT ID : ' + medal_id )
     let medal_redeemed_init_msg = { 
       name: "R-MEDAL",
       symbol: "RMEDAL",
       minter: medal_address
      };
-    // let medal_redeemed_address = await instantiateContract(terra, deployer, medal_redeemed_id, medal_redeemed_init_msg );
-    let medal_redeemed_address = "terra14rhzv208qpxh0ewag3ghuccu34ppy2l8xlk02w";
+    let medal_redeemed_address = await instantiateContract(terra, deployer, medal_redeemed_id, medal_redeemed_init_msg );
+    // let medal_redeemed_address = "terra14rhzv208qpxh0ewag3ghuccu34ppy2l8xlk02w";
     console.log('MEDAL (REDEEM) ADDRESS : ' + medal_redeemed_address )
 
     // #################################################    
@@ -82,25 +83,20 @@ async function main() {
 
     console.log('\n UPDATING MANIFESTO :: ADDING MEDAL ADDR AND METADATA ')
 
-    let update_medal_metadata_msg = { "update_medal_config": {
-                                          "medal_addr": medal_address,
-                                          "metadata": { 
-                                            "image": "ipfs://" + MEDAL_CID,
-                                            "image_data": null,
-                                            "external_url": "ipfs://" + MEDAL_TOKEN_URI,
-                                            "description": "A rare and coveted badge of honor for the earliest Martians. Redeemable for a physical pin to be mailed anywhere in the galaxy.",
-                                            "name": "MEDAL",
-                                            "attributes": null,
-                                            "background_color": null,
-                                            "animation_url": null,
-                                            "youtube_url": null ,
-                                          } 
-                                        }
-                                      };
+    let medal_metadata = {  "image": "ipfs://" + MEDAL_CID,
+                            "image_data": null,
+                            "external_url": "ipfs://" + MEDAL_TOKEN_URI,
+                            "description": "A rare and coveted badge of honor for the earliest Martians. Redeemable for a physical pin to be mailed anywhere in the galaxy.",
+                            "name": "MEDAL",
+                            "attributes": null,
+                            "background_color": null,
+                            "animation_url": null,
+                            "youtube_url": null ,
+                          }; 
+                          
                     
-                    
-    // await executeContract( terra, deployer, manifesto_address, update_medal_metadata_msg);
-    // console.log('SUCCESSFULLY UPDATED ')
+    await manifesto_medal_config( terra, deployer, manifesto_address, medal_address, medal_metadata);
+    console.log('SUCCESSFULLY UPDATED ')
 
 
     // #################################################    
@@ -108,26 +104,13 @@ async function main() {
     // #################################################    
 
     console.log('\n UPDATING MANIFESTO :: ADDING MEDAL (REDEEM) ADDR AND METADATA ')
-    let update_medal_redeem_metadata_msg = { "update_medal_redeem_config": {
-                                          "medal_redeem_addr": medal_redeemed_address,
-                                          "metadata": { 
-                                            "name_prefix": "R-MEDAL",
-                                            "description": "A proof of the redeemed physical Medal pin received by burning the Mars MEDAL NFT",
-                                            "image": "ipfs://" + MEDAL_REDEEMED_CID,
-                                            "token_uri": "ipfs://" + MEDAL_REDEEMED_TOKEN_URI
-                                          } 
-                                        }
-                                      };
-                    
-                    
-    await executeContract( terra, deployer, manifesto_address, update_medal_redeem_metadata_msg);
+    let medal_redeem_metadata =  { "name_prefix": "R-MEDAL",
+                                   "description": "A proof of the redeemed physical Medal pin received by burning the Mars MEDAL NFT",
+                                   "image": "ipfs://" + MEDAL_REDEEMED_CID,
+                                   "token_uri": "ipfs://" + MEDAL_REDEEMED_TOKEN_URI
+                                  };
+    await manifesto_medal_redeem_config( terra, deployer, manifesto_address, medal_redeemed_address, medal_redeem_metadata);
     console.log('SUCCESSFULLY UPDATED ')
-
-
-
-
-
-
 
 
 
@@ -136,11 +119,17 @@ async function main() {
     // #################################################    
 
     console.log('\n SIGNING THE MANIFESTO')
-    let sign_msg = { "sign_manifesto": { "martian_date":"20 Leo, 11 BML", "martian_time":"24:59:59 MTC" } };
-    let resp = await executeContract(terra, deployer, manifesto_address, sign_msg ); 
+    await sign_manifesto(terra, deployer, manifesto_address, "20 Leo, 11 BML", "24:59:59 MTC" ); 
     console.log('SUCCESSFULLY SIGNED ')
 
 
+    // #################################################    
+    // #########     REDEEM THE MEDAL        ###########
+    // #################################################    
+
+    console.log('\n REDEEMING THE MEDAL')
+    await redeem_medal(terra, deployer, medal_address, "0"); 
+    console.log('SUCCESSFULLY SIGNED ')
 
 
     // {"minter":{}}
@@ -155,22 +144,6 @@ async function main() {
 
 
 
-    // // SIGN MANIFESTO TX
-    // let response = await sign_manifesto(terra, wallet, manifesto_address, "20 Leo, 11 BML", "24:59:59 MTC"); 
-
-    // // GET SIGNEES COUNT
-    // let signeesCount = await get_signeesCount(terra, manifesto_address);
-    // console.log( "Total Signees : " + String(signeesCount.count) )
-
-    // // CHECK IF THE ADDRESS IS THE SIGNEE
-    // let isSignee_ = await isSignee(terra, manifesto_address, wallet.key.accAddress);
-    // console.log("IS SIGNEE : " + isSignee_.is_signee)
-
-    // // GET SIGNATURE
-    // let signature_ = await get_signature(terra, manifesto_address,wallet.key.accAddress);
-    // if (signature_ && signature_.signee == wallet.key.accAddress) {
-    //   console.log("SIGNATURE DETAILS : \n Signee : " + signature_.signee + " \n Martian Date : " + signature_.martian_date + " \n Martian Time : " + signature_.martian_time )
-    // } 
   }
 
 
