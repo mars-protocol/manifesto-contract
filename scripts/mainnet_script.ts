@@ -15,7 +15,7 @@ import { LCDClient } from "@terra-money/terra.js"
 const ARTIFACTS_PATH = "../artifacts"
 
 const MEDAL_CID = "bafybeifrvvl4ckorp2eb5afvtvyls2c7w62g3n5qo2oynt4g4pp4ymvd2a"
-const MEDAL_TOKEN_URI = "	bafkreihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku"
+const MEDAL_TOKEN_URI = "bafkreihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku"
 
 const MEDAL_REDEEMED_CID = "bafybeihv3ud2qkkvbwvv6iwldwcj7aiyfsomsa4p6bjahnctvrv4lenzt4"
 const MEDAL_REDEEMED_TOKEN_URI = "QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH"
@@ -118,18 +118,21 @@ async function main() {
     // #########     SIGN THE MANIFESTO        #########
     // #################################################    
 
-    console.log('\n SIGNING THE MANIFESTO')
-    await sign_manifesto(terra, deployer, manifesto_address, "20 Leo, 11 BML", "24:59:59 MTC" ); 
-    console.log('SUCCESSFULLY SIGNED ')
+    for (let i = 0; i < 51; i++) {
+      console.log('\n SIGNING THE MANIFESTO #' + i.toString() )
+      await sign_manifesto(terra, deployer, manifesto_address, "20 Leo, 11 BML", "24:59:59 MTC" ); 
+      console.log('SUCCESSFULLY SIGNED ')
+  
+    }                             
 
 
     // #################################################    
     // #########     REDEEM THE MEDAL        ###########
     // #################################################    
 
-    console.log('\n REDEEMING THE MEDAL')
-    await redeem_medal(terra, deployer, medal_address, "0"); 
-    console.log('SUCCESSFULLY SIGNED ')
+    // console.log('\n REDEEMING THE MEDAL')
+    // await redeem_medal(terra, deployer, medal_address, "0"); 
+    // console.log('SUCCESSFULLY REDEEMED')
 
 
     // {"minter":{}}

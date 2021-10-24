@@ -181,7 +181,8 @@ where
         let medal_redeem_metadata = self.get_medal_redeem_info(deps.storage)?;
 
         // MEDAL (Redeem) ID ::: To Be Minted
-        let redeem_medal_id = self.redeemed_tokens_count(deps.storage)?;
+        let mut redeem_medal_id = self.redeemed_tokens_count(deps.storage)?;
+        redeem_medal_id += 1;
 
         let mut attributes_vec = vec![];
         let date_attribute = Trait {
@@ -234,6 +235,7 @@ where
 
         // Remove (Burn) the MEDAL Token
         self.tokens.remove(deps.storage, &token_id)?;
+        self.decrement_tokens(deps.storage)?;
 
         // Increment Redeemed Medals Count
         self.increment_redeemed_tokens(deps.storage)?;

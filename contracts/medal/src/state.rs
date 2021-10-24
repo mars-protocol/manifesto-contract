@@ -124,6 +124,13 @@ where
         Ok(val)
     }
 
+    /// Decrements the current count of MEDAL Tokens
+    pub fn decrement_tokens(&self, storage: &mut dyn Storage) -> StdResult<u64> {
+        let val = self.token_count(storage)? - 1;
+        self.token_count.save(storage, &val)?;
+        Ok(val)
+    }
+
     /// Returns the current count of MEDAL Tokens that have been redeemed
     pub fn redeemed_tokens_count(&self, storage: &dyn Storage) -> StdResult<u64> {
         Ok(self.redeem_count.may_load(storage)?.unwrap_or_default())

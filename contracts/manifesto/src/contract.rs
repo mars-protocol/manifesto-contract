@@ -207,16 +207,17 @@ pub fn try_sign_manifesto(
     let signature_ = SIGNATURES
         .may_load(deps.storage, signee.clone().to_string().as_bytes())?
         .unwrap_or_default();
-    if signature_.signee.to_string() == signee {
-        return Err(StdError::generic_err(
-            "User has already signed the Manifesto",
-        ));
-    }
+    // if signature_.signee.to_string() == signee {
+    //     return Err(StdError::generic_err(
+    //         "User has already signed the Manifesto",
+    //     ));
+    // }
 
+    let token_id = state.signees_count + 1;
     let medal_mint_msg = build_medal_mint_msg(
         deps.as_ref(),
         config.medal_addr.to_string(),
-        state.signees_count,
+        token_id,
         signee.to_string(),
         martian_date.clone(),
         martian_time.clone(),
@@ -364,131 +365,3 @@ pub fn build_medal_mint_msg(
         funds: vec![],
     }))
 }
-
-//----------------------------------------------------------------------------------------
-// UNIT TESTS
-//----------------------------------------------------------------------------------------
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use cosmwasm_std::testing::{mock_dependencies, mock_env};
-//     use cosmwasm_std::{coins, from_binary, StdError};
-
-//     #[test]
-//     fn proper_initialization() {
-//         let mut deps = mock_dependencies(20, &[]);
-
-//         let msg = InitMsg {
-//             max_signees_allowed: 1280 as u32,
-//         };
-//         let env = mock_env("creator", &coins(1000, "earth"));
-
-//         // we can just call .unwrap() to assert this was a success
-//         let res = init(&mut deps, env, msg).unwrap();
-//         assert_eq!(0, res.messages.len());
-
-//         // it worked, let's query the state
-//         let res = query(&deps, QueryMsg::Config {}).unwrap();
-//         let value: ConfigResponse = from_binary(&res).unwrap();
-//         assert_eq!(0, value.signees_count);
-//     }
-
-//     #[test]
-//     fn sign_manifesto() {
-//         let mut deps = mock_dependencies(20, &coins(2, "token"));
-
-//         // Iniitalize env
-//         let msg = InitMsg {
-//             max_signees_allowed: 2 as u32,
-//         };
-//         let env = mock_env("creator", &coins(2, "token"));
-//         let _res = init(&mut deps, env, msg).unwrap();
-
-//         // Sign the manifesto: Should fail with invalid date error
-//         let env = mock_env("anyone", &coins(2, "token"));
-//         let msg = HandleMsg::SignManifesto {
-//             martian_date: "21, 11 BML".to_string(),
-//             martian_time: "15:17:14 AMT".to_string(),
-//         };
-//         let res_error = handle(&mut deps, env, msg);
-//         match res_error {
-//             Err(StdError::GenericErr { msg, .. }) => {
-//                 assert_eq!(msg, format!("Invalid Martian Date"))
-//             }
-//             _ => panic!("DO NOT ENTER HERE"),
-//         }
-
-//         // Sign the manifesto the first time : Should fail with invalid time error
-//         let env = mock_env("anyone", &coins(2, "token"));
-//         let msg = HandleMsg::SignManifesto {
-//             martian_date: "21 Mesha, 11 BML".to_string(),
-//             martian_time: "15:1:14 AMT".to_string(),
-//         };
-//         let res_error = handle(&mut deps, env, msg);
-//         match res_error {
-//             Err(StdError::GenericErr { msg, .. }) => {
-//                 assert_eq!(msg, format!("Invalid Martian Time"))
-//             }
-//             _ => panic!("DO NOT ENTER HERE"),
-//         }
-
-//         // Sign the manifesto the first time : Should be successful
-//         let env = mock_env("anyone", &coins(2, "token"));
-//         let msg = HandleMsg::SignManifesto {
-//             martian_date: "20 Mesha, 11 BML".to_string(),
-//             martian_time: "14:17:14 AMT".to_string(),
-//         };
-//         let _res = handle(&mut deps, env, msg).unwrap();
-
-//         // should increase counter by 1
-//         let res = query(&deps, QueryMsg::Config {}).unwrap();
-//         let value: ConfigResponse = from_binary(&res).unwrap();
-//         assert_eq!(1, value.signees_count);
-
-//         // Sign the manifesto the second time : Should fail
-//         let env = mock_env("anyone", &coins(2, "token"));
-//         let msg = HandleMsg::SignManifesto {
-//             martian_date: "21 Mesha, 11 BML".to_string(),
-//             martian_time: "15:17:14 AMT".to_string(),
-//         };
-//         let res_error = handle(&mut deps, env, msg);
-//         match res_error {
-//             Err(StdError::GenericErr { msg, .. }) => {
-//                 assert_eq!(msg, format!("User has already signed the Manifesto"))
-//             }
-//             _ => panic!("DO NOT ENTER HERE"),
-//         }
-
-//         let res_ = query(&deps, QueryMsg::Config {}).unwrap();
-//         let n_value: ConfigResponse = from_binary(&res_).unwrap();
-//         assert_eq!(1, n_value.signees_count);
-
-//         // Sign the manifesto the first time (2nd User) : Should be successful
-//         let env = mock_env("secondUser", &coins(2, "token"));
-//         let msg = HandleMsg::SignManifesto {
-//             martian_date: "20 Mesha, 11 BML".to_string(),
-//             martian_time: "14:17:14 AMT".to_string(),
-//         };
-//         let _res = handle(&mut deps, env, msg).unwrap();
-
-//         // should increase counter by 1
-//         let res = query(&deps, QueryMsg::Config {}).unwrap();
-//         let value: ConfigResponse = from_binary(&res).unwrap();
-//         assert_eq!(2, value.signees_count);
-
-//         // Sign the manifesto by 3rd user: Should fail with max limit reached error
-//         let env = mock_env("user3", &coins(2, "token"));
-//         let msg = HandleMsg::SignManifesto {
-//             martian_date: "21 Mesha, 11 BML".to_string(),
-//             martian_time: "15:17:14 AMT".to_string(),
-//         };
-//         let res_error = handle(&mut deps, env, msg);
-//         match res_error {
-//             Err(StdError::GenericErr { msg, .. }) => {
-//                 assert_eq!(msg, format!("Max signee limit reached"))
-//             }
-//             _ => panic!("DO NOT ENTER HERE"),
-//         }
-//     }
-// }
