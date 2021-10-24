@@ -8,7 +8,7 @@ import {
   uploadContract
 } from "./helpers.js"
 import {manifesto_medal_config, manifesto_medal_redeem_config, sign_manifesto, get_config, get_state, get_signature} from "./manifesto_utils.js";
-import {redeem_medal} from "./medal_utils.js";
+import {redeem_medal, transfer_nft} from "./medal_utils.js";
 import { LCDClient } from "@terra-money/terra.js"
 
 
@@ -130,9 +130,9 @@ async function main() {
     // #########     REDEEM THE MEDAL        ###########
     // #################################################    
 
-    // console.log('\n REDEEMING THE MEDAL')
-    // await redeem_medal(terra, deployer, medal_address, "0"); 
-    // console.log('SUCCESSFULLY REDEEMED')
+    console.log('\n REDEEMING THE MEDAL')
+    await redeem_medal(terra, deployer, medal_address, "0"); 
+    console.log('SUCCESSFULLY REDEEMED')
 
 
     // {"minter":{}}
@@ -141,13 +141,6 @@ async function main() {
     // {"nft_info":{ "token_id":"1408492026064021685680771516039365489"  }}
     // {"tokens":{ "owner":"terra1lnftl96z96cyqk0zd5tkwfgk4ttrdl5mf63gnp"  }}
 
-
-
-
-
-
-
-  }
-
+}
 
   main()
