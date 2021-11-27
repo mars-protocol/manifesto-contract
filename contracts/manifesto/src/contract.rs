@@ -6,8 +6,7 @@ use cosmwasm_std::{
 use crate::state::{Config, Signature, State, CONFIG, METADATA, SIGNATURES, STATE};
 use mars_community::manifesto::{
     option_string_to_addr, zero_address, ConfigResponse, ExecuteMsg, InstantiateMsg,
-    MedalExecuteMsg, MedalMetaData, MigrateMsg, MintMsg, QueryMsg, SignatureResponse,
-    StateResponse,
+    MedalExecuteMsg, MedalMetaData, MintMsg, QueryMsg, SignatureResponse, StateResponse,
 };
 use mars_community::metadata::{Metadata, Trait};
 
@@ -207,11 +206,12 @@ pub fn try_sign_manifesto(
     let signature_ = SIGNATURES
         .may_load(deps.storage, signee.clone().to_string().as_bytes())?
         .unwrap_or_default();
-    // if signature_.signee.to_string() == signee {
-    //     return Err(StdError::generic_err(
-    //         "User has already signed the Manifesto",
-    //     ));
-    // }
+
+    if signature_.signee.to_string() == signee {
+        return Err(StdError::generic_err(
+            "User has already signed the Manifesto",
+        ));
+    }
 
     let token_id = state.signees_count + 1;
     let medal_mint_msg = build_medal_mint_msg(
