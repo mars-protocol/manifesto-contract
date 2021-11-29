@@ -35,10 +35,11 @@ const LOCAL_TERRA_FEE = new StdFee(
   [new Coin('uusd', 45000000)]
 )
 
-export async function performTransaction( terra: LocalTerra | LCDClient, wallet: Wallet, msg: Msg) {
+export async function performTransaction( terra: LocalTerra | LCDClient, wallet: Wallet, msg: Msg, memo?: string) {
   let options: CreateTxOptions = {
     msgs: [msg],
-    gasPrices: [new Coin("uusd", 0.15)]
+    gasPrices: [new Coin("uusd", 0.15)],
+    memo: memo
   }
 
   if (terra instanceof LocalTerra) {
@@ -77,9 +78,9 @@ export async function uploadContract( terra: LocalTerra | LCDClient, wallet: Wal
   return Number(result.logs[0].eventsByType.store_code.code_id[0]) // code_id
 }
 
-export async function instantiateContract( terra: LocalTerra | LCDClient, wallet: Wallet, codeId: number, msg: object) {
+export async function instantiateContract( terra: LocalTerra | LCDClient, wallet: Wallet, codeId: number, msg: object, memo?: string) {
   const instantiateMsg = new MsgInstantiateContract(wallet.key.accAddress, undefined , codeId, msg, undefined);
-  let result = await performTransaction(terra, wallet, instantiateMsg)
+  let result = await performTransaction(terra, wallet, instantiateMsg, memo)
   const attributes = result.logs[0].events[0].attributes
   return attributes[attributes.length - 1].value // contract address
 }
@@ -93,9 +94,9 @@ export async function queryContract( terra: LocalTerra | LCDClient, contractAddr
   return await terra.wasm.contractQuery(contractAddress, query)
 }
 
-export async function deployContract( terra: LocalTerra | LCDClient, wallet: Wallet, filepath: string, initMsg: object) {
+export async function deployContract( terra: LocalTerra | LCDClient, wallet: Wallet, filepath: string, initMsg: object, memo?: string) {
   const codeId = await uploadContract(terra, wallet, filepath);
-  return await instantiateContract(terra, wallet, codeId, initMsg);
+  return await instantiateContract(terra, wallet, codeId, initMsg, memo);
 }
 
 export async function migrate( terra: LocalTerra | LCDClient, wallet: Wallet, contractAddress: string, newCodeId: number) {
