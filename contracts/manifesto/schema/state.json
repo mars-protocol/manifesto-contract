@@ -3,12 +3,13 @@
   "title": "State",
   "type": "object",
   "required": [
-    "signees"
+    "signees_count"
   ],
   "properties": {
-    "signees": {
+    "signees_count": {
       "type": "integer",
-      "format": "int32"
+      "format": "uint64",
+      "minimum": 0.0
     }
   }
 }

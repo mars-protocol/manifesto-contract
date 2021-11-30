@@ -84,7 +84,7 @@ where
 
     /// Returns the MEDAL (Redeemed) contract address
     pub fn get_medal_redeem_addr(&self, storage: &dyn Storage) -> StdResult<Addr> {
-        Ok(self.medal_redeem.load(storage)?)
+        self.medal_redeem.load(storage)
     }
 
     /// Updates the MEDAL (Redeemed) contract address
@@ -94,12 +94,12 @@ where
         medal_redeem_addr: Addr,
     ) -> StdResult<Addr> {
         self.medal_redeem.save(storage, &medal_redeem_addr)?;
-        Ok(self.medal_redeem.load(storage)?)
+        self.medal_redeem.load(storage)
     }
 
     /// Returns the MEDAL (Redeemed) Metadata
     pub fn get_medal_redeem_info(&self, storage: &dyn Storage) -> StdResult<MedalMetaData> {
-        Ok(self.medal_redeem_info.load(storage)?)
+        self.medal_redeem_info.load(storage)
     }
 
     /// Updates the MEDAL (Redeemed) Metadata
@@ -109,7 +109,7 @@ where
         medal_redeem_info: MedalMetaData,
     ) -> StdResult<MedalMetaData> {
         self.medal_redeem_info.save(storage, &medal_redeem_info)?;
-        Ok(self.medal_redeem_info.load(storage)?)
+        self.medal_redeem_info.load(storage)
     }
 
     /// Returns the current count of MEDAL Tokens

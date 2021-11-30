@@ -71,14 +71,6 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-// pub fn migrate<S: Storage, A: Api, Q: Querier>(
-//     _deps: &mut Extern<S, A, Q>,
-//     _env: Env,
-//     _msg: MigrateMsg,
-// ) -> StdResult<HandleResponse> {
-//     return Err(StdError::generic_err(format!("Migration is not allowed")));
-// }
-
 //----------------------------------------------------------------------------------------
 // Handle functions
 //----------------------------------------------------------------------------------------
@@ -122,20 +114,16 @@ pub fn try_update_medal_config(
     }
 
     let medal_metadata = MedalMetaData {
-        name_prefix: metadata.name.unwrap_or("".to_string()),
-        description: metadata.description.unwrap_or("".to_string()),
-        image: metadata.image.unwrap_or("".to_string()),
-        token_uri: metadata.external_url.unwrap_or("".to_string()),
+        name_prefix: metadata.name.unwrap_or_else(|| "".to_string()),
+        description: metadata.description.unwrap_or_else(|| "".to_string()),
+        image: metadata.image.unwrap_or_else(|| "".to_string()),
+        token_uri: metadata.external_url.unwrap_or_else(|| "".to_string()),
     };
 
     // Update & Save
     config.medal_addr = deps.api.addr_validate(&medal_addr)?;
     CONFIG.save(deps.storage, &config)?;
-    METADATA.save(
-        deps.storage,
-        medal_addr.to_string().as_bytes(),
-        &medal_metadata,
-    )?;
+    METADATA.save(deps.storage, medal_addr.as_bytes(), &medal_metadata)?;
 
     Ok(Response::new().add_attributes(vec![
         attr("action", "update_medal_config"),
@@ -185,29 +173,29 @@ pub fn try_sign_manifesto(
 ) -> StdResult<Response> {
     let config = CONFIG.load(deps.storage)?;
     let mut state = STATE.load(deps.storage)?;
-    let signee = info.sender.clone();
+    let signee = info.sender;
 
     // Verify if Time is in the valid format
     if !is_valid_time(&martian_time) {
-        return Err(StdError::generic_err(format!("Invalid Martian Time")));
+        return Err(StdError::generic_err("Invalid Martian Time"));
     }
 
     // Verify if Date is in the valid format
     if !is_valid_date(&martian_date) {
-        return Err(StdError::generic_err(format!("Invalid Martian Date")));
+        return Err(StdError::generic_err("Invalid Martian Date"));
     }
 
     // Verify if signee limit is not reached yet
     if state.signees_count >= config.max_signees_allowed {
-        return Err(StdError::generic_err(format!("Max signee limit reached")));
+        return Err(StdError::generic_err("Max signee limit reached"));
     }
 
     // Make sure the account has not already signed the Manifesto
     let signature_ = SIGNATURES
-        .may_load(deps.storage, signee.clone().to_string().as_bytes())?
+        .may_load(deps.storage, signee.to_string().as_bytes())?
         .unwrap_or_default();
 
-    if signature_.signee.to_string() == signee {
+    if signature_.signee == signee {
         return Err(StdError::generic_err(
             "User has already signed the Manifesto",
         ));
@@ -226,8 +214,8 @@ pub fn try_sign_manifesto(
     state.signees_count += 1;
     let signature_ = Signature {
         signee: signee.clone(),
-        martian_date: martian_date.clone(),
-        martian_time: martian_time.clone(),
+        martian_date,
+        martian_time,
     };
 
     STATE.save(deps.storage, &state)?;
@@ -268,12 +256,12 @@ fn query_state(deps: Deps) -> StdResult<StateResponse> {
 
 /// @dev Returns Signauture details of the signee
 fn get_signature(deps: Deps, signee: String) -> StdResult<SignatureResponse> {
-    let signature_ = SIGNATURES.load(deps.storage, signee.to_string().as_bytes())?;
-    return Ok(SignatureResponse {
+    let signature_ = SIGNATURES.load(deps.storage, signee.as_bytes())?;
+    Ok(SignatureResponse {
         signee: signature_.signee.to_string(),
         martian_date: signature_.martian_date,
         martian_time: signature_.martian_time,
-    });
+    })
 }
 
 //----------------------------------------------------------------------------------------
@@ -285,7 +273,7 @@ fn is_valid_time(time: &str) -> bool {
     if bytes.len() != 12 {
         return false;
     }
-    return true;
+    true
 }
 
 fn is_valid_date(date: &str) -> bool {
@@ -293,7 +281,7 @@ fn is_valid_date(date: &str) -> bool {
     if bytes.len() < 12 || bytes.len() > 24 {
         return false;
     }
-    return true;
+    true
 }
 
 /// Helper Function. Returns CosmosMsg which updates MEDAL (Redeem) address in the MEDAL Contract
@@ -303,10 +291,10 @@ pub fn build_update_medal_redeem_addr_msg(
     metadata: MedalMetaData,
 ) -> StdResult<CosmosMsg> {
     Ok(CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: medal_addr.to_string(),
+        contract_addr: medal_addr,
         msg: to_binary(&MedalExecuteMsg::UpdateMedalRedeemConfig {
-            medal_redeem_addr: medal_redeem_addr,
-            metadata: metadata,
+            medal_redeem_addr,
+            metadata,
         })?,
         funds: vec![],
     }))
@@ -321,7 +309,7 @@ pub fn build_medal_mint_msg(
     martian_date: String,
     martian_time: String,
 ) -> StdResult<CosmosMsg> {
-    let metadata = METADATA.load(deps.storage, medal_addr.to_string().as_bytes())?;
+    let metadata = METADATA.load(deps.storage, medal_addr.as_bytes())?;
 
     let mut attributes_vec = vec![];
     let date_attribute = Trait {
@@ -360,7 +348,7 @@ pub fn build_medal_mint_msg(
     };
 
     Ok(CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: medal_addr.to_string(),
+        contract_addr: medal_addr,
         msg: to_binary(&MedalExecuteMsg::Mint(mint_msg))?,
         funds: vec![],
     }))

@@ -44,7 +44,6 @@ async function main() {
       admin: deployer.key.accAddress
      }
     let manifesto_address = await instantiateContract(terra, deployer, manifesto_id, manifesto_init_msg, "MARS MANIFESTO" );
-    // let manifesto_address = "terra1nvva7uh543t7uakky8praw2m3g3vvgh9tpaaqm";
     console.log('MANIFESTO ADDRESS : ' + manifesto_address )
 
     // #################################################    
@@ -59,7 +58,6 @@ async function main() {
       minter: manifesto_address
      };
     let medal_address = await instantiateContract(terra, deployer, medal_id, medal_init_msg, "MEDAL" );
-    // let medal_address = "terra1xymzjs0tssgrjqjyr37864pdny7x8qw2nng6ht";
     console.log('MEDAL ADDRESS : ' + medal_address )
 
     // ############################################################    
@@ -67,14 +65,13 @@ async function main() {
     // ############################################################
 
     let medal_redeemed_id = await uploadContract(terra, deployer, '../artifacts/medal_redeemed.wasm');
-    console.log('MEDAL (REDEEM) CONTRACT ID : ' + medal_id )
+    console.log('MEDAL (REDEEM) CONTRACT ID : ' + medal_redeemed_id )
     let medal_redeemed_init_msg = { 
       name: "R-MEDAL",
       symbol: "RMEDAL",
       minter: medal_address
      };
     let medal_redeemed_address = await instantiateContract(terra, deployer, medal_redeemed_id, medal_redeemed_init_msg, "R-MEDAL" );
-    // let medal_redeemed_address = "terra14rhzv208qpxh0ewag3ghuccu34ppy2l8xlk02w";
     console.log('MEDAL (REDEEM) ADDRESS : ' + medal_redeemed_address )
 
     // #################################################    
@@ -111,35 +108,6 @@ async function main() {
                                   };
     await manifesto_medal_redeem_config( terra, deployer, manifesto_address, medal_redeemed_address, medal_redeem_metadata);
     console.log('SUCCESSFULLY UPDATED ')
-
-
-
-    // #################################################    
-    // #########     SIGN THE MANIFESTO        #########
-    // #################################################    
-
-    // for (let i = 0; i < 51; i++) {
-    //   console.log('\n SIGNING THE MANIFESTO #' + i.toString() )
-    //   await sign_manifesto(terra, deployer, manifesto_address, "20 Leo, 11 BML", "24:59:59 MTC" ); 
-    //   console.log('SUCCESSFULLY SIGNED ')
-  
-    // }                             
-
-
-    // #################################################    
-    // #########     REDEEM THE MEDAL        ###########
-    // #################################################    
-
-    // console.log('\n REDEEMING THE MEDAL')
-    // await redeem_medal(terra, deployer, "terra1a3qdml9ya7fydrkpqz32quxegev4vzz58urcrg", "1"); 
-    // console.log('SUCCESSFULLY REDEEMED')
-
-
-    // {"minter":{}}
-    // {"contract_info":{}}
-    // {"num_tokens":{}}
-    // {"nft_info":{ "token_id":"1408492026064021685680771516039365489"  }}
-    // {"tokens":{ "owner":"terra1lnftl96z96cyqk0zd5tkwfgk4ttrdl5mf63gnp"  }}
 
 }
 

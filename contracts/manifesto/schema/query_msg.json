@@ -5,32 +5,46 @@
     {
       "type": "object",
       "required": [
-        "get_count"
+        "config"
       ],
       "properties": {
-        "get_count": {
+        "config": {
           "type": "object"
         }
-      }
+      },
+      "additionalProperties": false
     },
     {
       "type": "object",
       "required": [
-        "is_signee"
+        "state"
       ],
       "properties": {
-        "is_signee": {
+        "state": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "get_signature"
+      ],
+      "properties": {
+        "get_signature": {
           "type": "object",
           "required": [
-            "address"
+            "signee"
           ],
           "properties": {
-            "address": {
+            "signee": {
               "type": "string"
             }
           }
         }
-      }
+      },
+      "additionalProperties": false
     }
   ]
 }
