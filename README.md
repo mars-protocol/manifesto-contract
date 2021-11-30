@@ -33,14 +33,14 @@ rustup default stable
 rustup target add wasm32-unknown-unknown
 ```
 
-3. Install Node libraries required for testing:
+3. Install Node libraries required:
 
 ```bash
 cd scripts
 npm install
 ```
 
-### Compiling & Production
+### Compile
 
 Make sure the current working directory is set to the root directory of this repository, then execute the following commands to build the contract and generate .wasm file in the `\artifacts` folder
 
@@ -59,11 +59,10 @@ You can execute the deployment script available in the `/scripts` folder to depl
 - execute the following command
 
 ```
-cd script
-npm install
-node --loader ts-node/esm testnet_script.ts
+cd scripts
+node --loader ts-node/esm deploy_script.ts
 ```
 
 ## License
 
-TBD
+[GNU General Public License v3.0](https://github.com/astroport-fi/astroport-periphery/blob/main/LICENSE)
