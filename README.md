@@ -1,6 +1,6 @@
-# manifesto-contract
+# manifesto and MEDAL NFTs
 
-- This repository contains the source code and the deployment script for the smart contract implementing Mars Manifesto and Medal NFTs on the Terra blockchain.
+- This repository contains the source code for the smart contracts implementing Mars Manifesto and Medal NFTs on the Terra blockchain.
 
 This repo contains the following contracts -
 
